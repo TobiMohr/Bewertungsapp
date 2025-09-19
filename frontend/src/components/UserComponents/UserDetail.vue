@@ -14,19 +14,14 @@
         :key="c.id"
         class="py-4 flex justify-between items-center"
       >
-        <div>
-          <p class="text-gray-900 font-medium">
-            {{ c.criterion.name }}
-          </p>
-          <p class="text-sm text-gray-500">Type: {{ c.criterion.type }}</p>
-        </div>
+        <p class="text-gray-900 font-medium">{{ c.criterion.name }}</p>
 
         <!-- Countable -->
         <div v-if="c.criterion.type === 'countable'" class="flex items-center space-x-2">
-          <span class="text-gray-700 font-semibold">{{ c.count_value ?? 0 }}</span>
+          <span class="text-gray-700 font-bold text-lg">{{ c.count_value ?? 0 }}</span>
           <button
             @click="increment(c.criterion_id)"
-            class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
+            class="w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold shadow"
           >
             +
           </button>
@@ -40,7 +35,6 @@
               v-model="c.is_fulfilled"
               @change="toggleBoolean(c.criterion_id, c.is_fulfilled)"
             />
-            <span>Fulfilled</span>
           </label>
         </div>
       </li>
