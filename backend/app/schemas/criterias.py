@@ -9,14 +9,15 @@ class CriterionType(str, Enum):
     boolean = "boolean"
 
 
-# ---------- Criterion ----------
+# ---------- Criterion ----------   
 class CriterionBase(BaseModel):
     name: str
     type: CriterionType
 
 
 class CriterionCreate(CriterionBase):
-    pass
+    name: str
+    type: CriterionType
 
 
 class CriterionRead(CriterionBase):

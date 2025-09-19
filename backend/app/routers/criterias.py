@@ -27,14 +27,35 @@ def get_db():
 def create_criterion(
     payload: CriterionCreate, session: Session = Depends(get_db)
 ):
+    # Check if it already exists
     existing = session.query(Criterion).filter(Criterion.name == payload.name).first()
     if existing:
         raise HTTPException(status_code=400, detail="Criterion already exists")
 
-    new_crit = Criterion(name=payload.name, type=payload.type)
+    # Create the new criterion
+    new_crit = Criterion(
+        name=payload.name,
+        type=CriterionType(payload.type)  # converts string -> Enum
+    )
+
     session.add(new_crit)
     session.commit()
     session.refresh(new_crit)
+
+    # 🔹 Assign it to every user right after creation
+    users = session.query(User).all()
+    for user in users:
+        exists = session.query(UserCriterion).filter_by(
+            user_id=user.id,
+            criterion_id=new_crit.id
+        ).first()
+        if not exists:
+            uc = UserCriterion(user_id=user.id, criterion_id=new_crit.id)
+            session.add(uc)
+
+    session.commit()
+
+
     return new_crit
 
 
@@ -44,6 +65,19 @@ def list_criteria(session: Session = Depends(get_db)):
 
 
 # ----- UserCriterion -----
+@router.get("/user/{user_id}", response_model=list[UserCriterionRead])
+def get_user_criteria(user_id: int, session: Session = Depends(get_db)):
+    """
+    Return all criteria assigned to a user, including values.
+    """
+    data = (
+        session.query(UserCriterion)
+        .filter(UserCriterion.user_id == user_id)
+        .all()
+    )
+    return data
+
+
 @router.post("/{criterion_id}/assign/{user_id}", response_model=UserCriterionRead)
 def assign_criterion_to_user(criterion_id: int, user_id: int, session: Session = Depends(get_db)):
     criterion = session.query(Criterion).get(criterion_id)
