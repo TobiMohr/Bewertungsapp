@@ -9,14 +9,15 @@ class CriterionType(str, Enum):
     boolean = "boolean"
 
 
-# ---------- Criterion ----------
+# ---------- Criterion ----------   
 class CriterionBase(BaseModel):
     name: str
     type: CriterionType
 
 
 class CriterionCreate(CriterionBase):
-    pass
+    name: str
+    type: CriterionType
 
 
 class CriterionRead(CriterionBase):
@@ -36,6 +37,7 @@ class UserCriterionRead(UserCriterionBase):
     id: int
     count_value: Optional[int] = None
     is_fulfilled: Optional[bool] = None
+    criterion: Optional[CriterionRead] = None
 
     class Config:
         orm_mode = True

@@ -15,9 +15,10 @@ from ..db import Base
 
 
 # --- Enum for the criterion type ---
+
 class CriterionType(PyEnum):
-    COUNTABLE = "countable"
-    BOOLEAN = "boolean"
+    countable = "countable"
+    boolean = "boolean"
 
 
 # --- Criterion table ---
@@ -26,7 +27,7 @@ class Criterion(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, unique=True)
-    type = Column(Enum(CriterionType), nullable=False)
+    type = Column(Enum(CriterionType, name="criteriontype", native_enum=False), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

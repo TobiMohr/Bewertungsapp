@@ -16,7 +16,9 @@
         class="py-4 flex items-center justify-between"
       >
         <div>
-          <p class="text-lg font-medium text-gray-900">
+          <p class="text-lg font-medium text-gray-900 cursor-pointer hover:underline"
+            @click="$router.push(`/users/${user.id}`)"
+          >
             {{ user.first_name }} {{ user.last_name }} - {{ user.email }}
           </p>
         </div>

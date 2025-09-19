@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import db, models
-from .routers import users, auth
+from .routers import users, auth, criterias
 
 # --- configure logging once, at startup ---
 logging.basicConfig(level=logging.INFO)
@@ -29,3 +29,4 @@ models.Base.metadata.create_all(bind=db.engine)
 # Include user router
 app.include_router(users.router)
 app.include_router(auth.router)
+app.include_router(criterias.router)

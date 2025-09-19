@@ -3,6 +3,9 @@ import RegisterForm from "../components/AuthComponents/RegisterForm.vue";
 import LoginForm from "../components/AuthComponents/LoginForm.vue";
 import UserList from "../components/UserComponents/UserList.vue";
 import UserForm from "../components/UserComponents/UserForm.vue";
+import UserDetail from "../components/UserComponents/UserDetail.vue";
+import CriteriaList from "@/components/CriteriaComponents/CriteriaList.vue";
+import CriteriaForm from "@/components/CriteriaComponents/CriteriaForm.vue";
 
 const routes = [
   { path: "/", redirect: "/login" },
@@ -22,6 +25,21 @@ const routes = [
     path: "/users/edit/:id",
     component: UserForm,
     props: true,
+    meta: { requiresAuth: true, }
+  },
+  {
+    path: "/users/:id",
+    component: UserDetail,
+    meta: { requiresAuth: true, }
+  },
+  {
+    path: "/criterias",
+    component: CriteriaList,
+    meta: { requiresAuth: true, }
+  },
+  {
+    path: "/criterias/create",
+    component: CriteriaForm,
     meta: { requiresAuth: true, }
   }
 ];

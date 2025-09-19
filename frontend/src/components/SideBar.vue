@@ -4,7 +4,7 @@
 
     <nav class="flex-1">
       <ul class="space-y-2">
-        <!-- Users Menüpunkt -->
+        <!-- Users Menu -->
         <li>
           <button
             @click="toggleUsers"
@@ -25,7 +25,7 @@
             </svg>
           </button>
 
-          <!-- Unterpunkte -->
+          <!-- Users Submenu -->
           <ul v-show="usersOpen" class="mt-2 ml-4 space-y-1">
             <li>
               <router-link
@@ -39,6 +39,50 @@
             <li>
               <router-link
                 to="/users/create"
+                class="block px-4 py-2 rounded hover:bg-gray-200"
+                active-class="bg-gray-300 font-semibold"
+              >
+                Create
+              </router-link>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Criterias Menu -->
+        <li class="mt-2">
+          <button
+            @click="toggleCriterias"
+            class="w-full flex justify-between items-center px-4 py-2 rounded hover:bg-gray-200"
+          >
+            <span>Criterias</span>
+            <svg
+              :class="{'rotate-90': criteriasOpen}"
+              class="w-4 h-4 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5l7 7-7 7">
+              </path>
+            </svg>
+          </button>
+
+          <!-- Criterias Submenu -->
+          <ul v-show="criteriasOpen" class="mt-2 ml-4 space-y-1">
+            <li>
+              <router-link
+                to="/criterias"
+                class="block px-4 py-2 rounded hover:bg-gray-200"
+                active-class="bg-gray-300 font-semibold"
+              >
+                List
+              </router-link>
+            </li>
+            <li>
+              <router-link
+                to="/criterias/create"
                 class="block px-4 py-2 rounded hover:bg-gray-200"
                 active-class="bg-gray-300 font-semibold"
               >
@@ -69,17 +113,17 @@ export default {
     const router = useRouter();
 
     const usersOpen = ref(false);
+    const criteriasOpen = ref(false);
 
-    const toggleUsers = () => {
-      usersOpen.value = !usersOpen.value;
-    };
+    const toggleUsers = () => { usersOpen.value = !usersOpen.value; };
+    const toggleCriterias = () => { criteriasOpen.value = !criteriasOpen.value; };
 
     const logout = () => {
       localStorage.removeItem("token");
       router.push("/login");
     };
 
-    return { usersOpen, toggleUsers, logout };
+    return { usersOpen, toggleUsers, criteriasOpen, toggleCriterias, logout };
   },
 };
 </script>
