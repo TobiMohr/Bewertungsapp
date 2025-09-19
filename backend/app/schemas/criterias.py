@@ -37,6 +37,7 @@ class UserCriterionRead(UserCriterionBase):
     id: int
     count_value: Optional[int] = None
     is_fulfilled: Optional[bool] = None
+    criterion: Optional[CriterionRead] = None
 
     class Config:
         orm_mode = True

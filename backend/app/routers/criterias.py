@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -67,14 +67,10 @@ def list_criteria(session: Session = Depends(get_db)):
 # ----- UserCriterion -----
 @router.get("/user/{user_id}", response_model=list[UserCriterionRead])
 def get_user_criteria(user_id: int, session: Session = Depends(get_db)):
-    """
-    Return all criteria assigned to a user, including values.
-    """
-    data = (
-        session.query(UserCriterion)
-        .filter(UserCriterion.user_id == user_id)
-        .all()
-    )
+    data = session.query(UserCriterion).filter(UserCriterion.user_id == user_id).all()
+    # Ensure the 'criterion' relationship is loaded
+    for uc in data:
+        _ = uc.criterion
     return data
 
 
@@ -106,8 +102,12 @@ def increment_user_criterion(criterion_id: int, user_id: int, session: Session =
     criterion = session.query(Criterion).get(criterion_id)
     if not criterion:
         raise HTTPException(status_code=404, detail="Criterion not found")
-    if criterion.type != CriterionType.countable:
-        raise HTTPException(status_code=400, detail="Criterion is not countable")
+    if criterion.type.value != "countable":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Criterion is not countable, it is '{criterion.type.value}'"
+        )
+
 
     uc = (
         session.query(UserCriterion)
@@ -126,13 +126,21 @@ def increment_user_criterion(criterion_id: int, user_id: int, session: Session =
 
 @router.put("/{criterion_id}/set/{user_id}", response_model=UserCriterionRead)
 def set_boolean_value(
-    criterion_id: int, user_id: int, value: bool, session: Session = Depends(get_db)
+    criterion_id: int,
+    user_id: int,
+    value: bool = Query(..., description="Boolean value to set"),
+    session: Session = Depends(get_db)
 ):
     criterion = session.query(Criterion).get(criterion_id)
     if not criterion:
         raise HTTPException(status_code=404, detail="Criterion not found")
-    if criterion.type != CriterionType.boolean:
-        raise HTTPException(status_code=400, detail="Criterion is not boolean")
+    if criterion.type.value != "boolean":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Criterion is not boolean, it is '{criterion.type.value}'"
+        )
+
+
 
     uc = (
         session.query(UserCriterion)
