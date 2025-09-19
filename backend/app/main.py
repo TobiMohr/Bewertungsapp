@@ -2,7 +2,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import models, db
+from . import db, models
 from .routers import users, auth
 
 # --- configure logging once, at startup ---

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String
-from .db import Base
+from ..db import Base
 from datetime import datetime, timezone
+from sqlalchemy.orm import relationship
 
 class User(Base):
     __tablename__ = "users"
@@ -18,4 +19,6 @@ class User(Base):
         default=lambda: datetime.now(timezone.utc).isoformat(),
         onupdate=lambda: datetime.now(timezone.utc).isoformat()
     )
+
+    criteria = relationship("UserCriterion", back_populates="user")
 

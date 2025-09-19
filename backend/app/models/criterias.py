@@ -1,0 +1,55 @@
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    Enum,
+    ForeignKey,
+    DateTime,
+    func
+)
+from sqlalchemy.orm import relationship
+from enum import Enum as PyEnum
+
+from ..db import Base
+
+
+# --- Enum for the criterion type ---
+class CriterionType(PyEnum):
+    COUNTABLE = "countable"
+    BOOLEAN = "boolean"
+
+
+# --- Criterion table ---
+class Criterion(Base):
+    __tablename__ = "criteria"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, unique=True)
+    type = Column(Enum(CriterionType), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    users = relationship("UserCriterion", back_populates="criterion")
+
+
+# --- Association table between User and Criterion ---
+class UserCriterion(Base):
+    __tablename__ = "user_criteria"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    criterion_id = Column(Integer, ForeignKey("criteria.id"), nullable=False)
+
+    # For COUNTABLE type: store an integer
+    count_value = Column(Integer, nullable=True, default=0)
+
+    # For BOOLEAN type: store whether the criterion is fulfilled
+    is_fulfilled = Column(Boolean, nullable=True, default=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User", back_populates="criteria")
+    criterion = relationship("Criterion", back_populates="users")
+
