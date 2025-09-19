@@ -1,0 +1,41 @@
+from pydantic import BaseModel
+from enum import Enum
+from typing import Optional
+
+
+# ---------- Enum ----------
+class CriterionType(str, Enum):
+    countable = "countable"
+    boolean = "boolean"
+
+
+# ---------- Criterion ----------
+class CriterionBase(BaseModel):
+    name: str
+    type: CriterionType
+
+
+class CriterionCreate(CriterionBase):
+    pass
+
+
+class CriterionRead(CriterionBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
+# ---------- UserCriterion ----------
+class UserCriterionBase(BaseModel):
+    user_id: int
+    criterion_id: int
+
+
+class UserCriterionRead(UserCriterionBase):
+    id: int
+    count_value: Optional[int] = None
+    is_fulfilled: Optional[bool] = None
+
+    class Config:
+        orm_mode = True
