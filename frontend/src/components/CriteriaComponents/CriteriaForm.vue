@@ -5,34 +5,50 @@
     </h2>
 
     <form @submit.prevent="submitForm" class="space-y-4">
-      <input
+      <!-- Criterion Name -->
+      <BaseInput
         v-model="criterion.name"
         placeholder="Criterion Name"
-        class="input"
         required
       />
 
-      <select v-model="criterion.type" class="input" required>
-        <option disabled value="">Select Type</option>
-        <option value="boolean">Boolean</option>
-        <option value="countable">Countable</option>
-      </select>
+      <!-- Criterion Type -->
+      <BaseSelect
+        v-model="criterion.type"
+        :options="typeOptions"
+        placeholder="Select Type"
+        required
+        />
 
-      <button type="submit" class="btn">Create</button>
-      <button type="button" class="btn cancel" @click="$router.push('/criterias')">
-        Cancel
-      </button>
+      <div class="flex space-x-2">
+        <BaseButton type="submit">Create</BaseButton>
+        <BaseButton
+          type="button"
+          class="bg-gray-400 hover:bg-gray-500"
+          @click="$router.push('/criterias')"
+        >
+          Cancel
+        </BaseButton>
+      </div>
     </form>
   </div>
 </template>
 
 <script>
+import BaseInput from "@/components/BaseComponents/BaseInput.vue";
+import BaseButton from "@/components/BaseComponents/BaseButton.vue";
+import BaseSelect from "@/components/BaseComponents/BaseSelect.vue";
 import { createCriterion } from "../../api/criterias";
 
 export default {
+  components: { BaseInput, BaseButton, BaseSelect },
   data() {
     return {
-      criterion: { name: "", type: "" },
+        criterion: { name: "", type: "" },
+        typeOptions: [
+        { label: "Boolean", value: "boolean" },
+        { label: "Countable", value: "countable" },
+        ],
     };
   },
   methods: {
@@ -47,21 +63,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 0.375rem;
-}
-.btn {
-  padding: 0.5rem 1rem;
-  background-color: #4f46e5;
-  color: white;
-  border-radius: 0.375rem;
-}
-.btn.cancel {
-  background-color: #9ca3af;
-}
-</style>

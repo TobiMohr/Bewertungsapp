@@ -1,38 +1,41 @@
 <template>
   <div class="max-w-2xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
-    <h2 class="text-2xl font-bold text-gray-800 mb-4">
-      User: {{ user?.first_name }} {{ user?.last_name }}
+    <!-- Header -->
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">
+      {{ user?.first_name }} {{ user?.last_name }}
     </h2>
-
     <p class="text-gray-600 mb-6">{{ user?.email }}</p>
 
-    <h3 class="text-xl font-semibold text-gray-700 mb-2">Criteria</h3>
+    <h3 class="text-xl font-semibold text-gray-700 mb-4">Criteria</h3>
 
+    <!-- Criteria list -->
     <ul v-if="criteria.length" class="divide-y divide-gray-200">
       <li
         v-for="c in criteria"
         :key="c.id"
         class="py-4 flex justify-between items-center"
       >
+        <!-- Criterion name -->
         <p class="text-gray-900 font-medium">{{ c.criterion.name }}</p>
 
-        <!-- Countable -->
+        <!-- Countable criterion -->
         <div v-if="c.criterion.type === 'countable'" class="flex items-center space-x-2">
           <span class="text-gray-700 font-bold text-lg">{{ c.count_value ?? 0 }}</span>
-          <button
+          <BaseButton
+            class="w-8 h-8 flex items-center justify-center p-0 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xl shadow"
             @click="increment(c.criterion_id)"
-            class="w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold shadow"
           >
             +
-          </button>
+          </BaseButton>
         </div>
 
-        <!-- Boolean -->
+        <!-- Boolean criterion -->
         <div v-else>
-          <label class="flex items-center space-x-2">
+          <label class="flex items-center cursor-pointer">
             <input
               type="checkbox"
               v-model="c.is_fulfilled"
+              class="form-checkbox h-5 w-5 text-indigo-600"
               @change="toggleBoolean(c.criterion_id, c.is_fulfilled)"
             />
           </label>
@@ -40,15 +43,20 @@
       </li>
     </ul>
 
-    <p v-else class="text-gray-500 mt-4">No criteria assigned to this user.</p>
+    <!-- Empty state -->
+    <p v-else class="text-gray-500 mt-4 text-center">
+      No criteria assigned to this user.
+    </p>
   </div>
 </template>
 
 <script>
+import BaseButton from "../BaseComponents/BaseButton.vue";
 import { getUser } from "../../api/users";
-import { getUserCriterias, incrementUserCriterion, setBooleanValue } from "@/api/criterias";
+import { getUserCriterias, incrementUserCriterion, setBooleanValue } from "../../api/criterias";
 
 export default {
+  components: { BaseButton },
   data() {
     return {
       user: null,

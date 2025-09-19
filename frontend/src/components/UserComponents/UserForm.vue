@@ -5,64 +5,43 @@
     </h2>
 
     <form @submit.prevent="submitForm" class="space-y-4">
-      <input
-        v-model="user.first_name"
-        placeholder="First Name"
-        class="input"
-        required
-      />
-      <input
-        v-model="user.last_name"
-        placeholder="Last Name"
-        class="input"
-        required
-      />
-      <input
-        v-model="user.email"
-        type="email"
-        placeholder="Email"
-        class="input"
-        required
-      />
+      <BaseInput v-model="user.first_name" placeholder="First Name" required />
+      <BaseInput v-model="user.last_name" placeholder="Last Name" required />
+      <BaseInput v-model="user.email" type="email" placeholder="Email" required />
 
-      <!-- Only show password field when creating a user -->
-      <input
+      <BaseInput
         v-if="!isEdit"
         v-model="user.password"
         type="password"
         placeholder="Password"
-        class="input"
         required
       />
 
-      <button type="submit" class="btn">
-        {{ isEdit ? "Update" : "Create" }}
-      </button>
-      <button
-        v-if="isEdit"
-        type="button"
-        class="btn cancel"
-        @click="cancelEdit"
-      >
-        Cancel
-      </button>
+      <div class="flex space-x-2">
+        <BaseButton type="submit">{{ isEdit ? "Update" : "Create" }}</BaseButton>
+        <BaseButton
+          v-if="isEdit"
+          type="button"
+          class="bg-gray-400 hover:bg-gray-500"
+          @click="cancelEdit"
+        >
+          Cancel
+        </BaseButton>
+      </div>
     </form>
   </div>
 </template>
 
 <script>
+import BaseInput from "../BaseComponents/BaseInput.vue";
+import BaseButton from "../BaseComponents/BaseButton.vue";
 import { createUser, updateUser, getUser } from "../../api/users";
 
 export default {
+  components: { BaseInput, BaseButton },
   data() {
     return {
-      user: {
-        id: null,
-        first_name: "",
-        last_name: "",
-        email: "",
-        password: "",
-      },
+      user: { id: null, first_name: "", last_name: "", email: "", password: "" },
       isEdit: false,
     };
   },
@@ -95,21 +74,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 0.375rem;
-}
-.btn {
-  padding: 0.5rem 1rem;
-  background-color: #4f46e5;
-  color: white;
-  border-radius: 0.375rem;
-}
-.btn.cancel {
-  background-color: #9ca3af;
-}
-</style>

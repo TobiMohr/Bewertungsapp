@@ -3,9 +3,9 @@
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-gray-800">Criterias</h2>
       <router-link to="/criterias/create">
-        <button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+        <BaseButton class="bg-green-500 hover:bg-green-600">
           Create Criterion
-        </button>
+        </BaseButton>
       </router-link>
     </div>
 
@@ -17,18 +17,26 @@
       >
         <div>
           <p class="text-lg font-medium text-gray-900">
-            {{ crit.name }} <span class="text-gray-500 text-sm">({{ crit.type }})</span>
+            {{ crit.name }}
+            <!-- Optionally hide type if not needed -->
+            <span class="text-gray-500 text-sm">({{ crit.type }})</span>
           </p>
         </div>
       </li>
     </ul>
+
+    <p v-if="criterias.length === 0" class="text-gray-500 mt-4">
+      No criterias created yet.
+    </p>
   </div>
 </template>
 
 <script>
 import { getCriterias } from "../../api/criterias";
+import BaseButton from "@/components/BaseComponents/BaseButton.vue";
 
 export default {
+  components: { BaseButton },
   data() {
     return { criterias: [] };
   },
