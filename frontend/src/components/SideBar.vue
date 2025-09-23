@@ -19,9 +19,12 @@
               viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 5l7 7-7 7">
-              </path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
 
@@ -63,9 +66,12 @@
               viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 5l7 7-7 7">
-              </path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
 
@@ -91,6 +97,17 @@
             </li>
           </ul>
         </li>
+
+        <!-- Sessions Menu (only Create) -->
+        <li class="mt-2">
+          <router-link
+            to="/sessions/create"
+            class="block w-full text-left px-4 py-2 rounded hover:bg-gray-200"
+            active-class="bg-gray-300 font-semibold"
+          >
+            Create Session
+          </router-link>
+        </li>
       </ul>
     </nav>
 
@@ -115,15 +132,25 @@ export default {
     const usersOpen = ref(false);
     const criteriasOpen = ref(false);
 
-    const toggleUsers = () => { usersOpen.value = !usersOpen.value; };
-    const toggleCriterias = () => { criteriasOpen.value = !criteriasOpen.value; };
+    const toggleUsers = () => {
+      usersOpen.value = !usersOpen.value;
+    };
+    const toggleCriterias = () => {
+      criteriasOpen.value = !criteriasOpen.value;
+    };
 
     const logout = () => {
       localStorage.removeItem("token");
       router.push("/login");
     };
 
-    return { usersOpen, toggleUsers, criteriasOpen, toggleCriterias, logout };
+    return {
+      usersOpen,
+      criteriasOpen,
+      toggleUsers,
+      toggleCriterias,
+      logout,
+    };
   },
 };
 </script>
