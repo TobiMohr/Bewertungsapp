@@ -18,7 +18,6 @@ def create_user(user: schemas.UserCreate, session: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Create the user
     new_user = models.User(
         first_name=user.first_name,
         last_name=user.last_name,
@@ -29,14 +28,8 @@ def create_user(user: schemas.UserCreate, session: Session = Depends(get_db)):
     session.commit()
     session.refresh(new_user)
 
-    # 🔹 Assign all existing criteria to the new user
-    criteria = session.query(models.Criterion).all()
-    for crit in criteria:
-        uc = models.UserCriterion(user_id=new_user.id, criterion_id=crit.id)
-        session.add(uc)
-    session.commit()
-
     return new_user
+
 
 @router.get("/", response_model=list[schemas.UserRead])
 def get_users(session: Session = Depends(get_db)):

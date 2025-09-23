@@ -12,6 +12,7 @@ from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
 
 from ..db import Base
+from .session_criteria_association import session_criteria_association
 
 
 # --- Enum for the criterion type ---
@@ -27,11 +28,16 @@ class Criterion(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, unique=True)
-    type = Column(Enum(CriterionType, name="criteriontype", native_enum=False), nullable=False)
+    type = Column(Enum(CriterionType, name="criteriontype", native_enum=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     users = relationship("UserCriterion", back_populates="criterion")
+    sessions = relationship(
+        "Session",
+        secondary=session_criteria_association,
+        back_populates="criteria"
+    )
 
 
 # --- Association table between User and Criterion ---
@@ -44,10 +50,10 @@ class UserCriterion(Base):
     session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False)
 
     # For COUNTABLE type: store an integer
-    count_value = Column(Integer, nullable=True, default=0)
+    count_value = Column(Integer, nullable=False, default=0)
 
     # For BOOLEAN type: store whether the criterion is fulfilled
-    is_fulfilled = Column(Boolean, nullable=True, default=False)
+    is_fulfilled = Column(Boolean, nullable=False, default=False)
     
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

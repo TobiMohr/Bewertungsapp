@@ -1,20 +1,22 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import List, Optional
 
 class SessionBase(BaseModel):
     title: str
-    description: str | None = None
+    description: Optional[str] = None
 
 class SessionCreate(SessionBase):
-    pass
+    criteria_ids: Optional[List[int]] = []
 
 class SessionUpdate(SessionBase):
-    pass
+    criteria_ids: Optional[List[int]] = []
 
 class SessionRead(SessionBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    criterion_ids: List[int] = []
 
     class Config:
         orm_mode = True
