@@ -6,11 +6,14 @@ import UserForm from "../components/UserComponents/UserForm.vue";
 import UserDetail from "../components/UserComponents/UserDetail.vue";
 import CriteriaList from "@/components/CriteriaComponents/CriteriaList.vue";
 import CriteriaForm from "@/components/CriteriaComponents/CriteriaForm.vue";
+import SessionForm from "@/components/SessionComponents/SessionForm.vue"; // 👈 import
 
 const routes = [
   { path: "/", redirect: "/login" },
   { path: "/login", component: LoginForm },
   { path: "/register", component: RegisterForm },
+
+  // Users
   {
     path: "/users",
     component: UserList,
@@ -25,23 +28,32 @@ const routes = [
     path: "/users/edit/:id",
     component: UserForm,
     props: true,
-    meta: { requiresAuth: true, }
+    meta: { requiresAuth: true },
   },
   {
     path: "/users/:id",
     component: UserDetail,
-    meta: { requiresAuth: true, }
+    meta: { requiresAuth: true },
   },
+
+  // Criterias
   {
     path: "/criterias",
     component: CriteriaList,
-    meta: { requiresAuth: true, }
+    meta: { requiresAuth: true },
   },
   {
     path: "/criterias/create",
     component: CriteriaForm,
-    meta: { requiresAuth: true, }
-  }
+    meta: { requiresAuth: true },
+  },
+
+  // Sessions
+  {
+    path: "/sessions/create",
+    component: SessionForm,
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({
