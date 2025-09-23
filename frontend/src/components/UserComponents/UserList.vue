@@ -13,15 +13,12 @@
     <!-- Session selector -->
     <div class="mb-6">
       <label class="block mb-2 font-semibold">Select Session</label>
-      <select
+      <BaseSelect
         v-model="selectedSession"
+        :options="sessions.map(s => ({ label: s.title, value: s.id }))"
         @change="fetchUsers"
-        class="border rounded p-2 w-full md:w-1/3"
-      >
-        <option v-for="s in sessions" :key="s.id" :value="s.id">
-          {{ s.title }}
-        </option>
-      </select>
+        class="w-full md:w-1/3"
+      />
     </div>
 
     <!-- User list -->
@@ -70,12 +67,13 @@
 
 <script>
 import { getUsers, deleteUser } from "../../api/users";
-import { getSessions } from "../../api/sessions"; // your API to get sessions
+import { getSessions } from "../../api/sessions";
 import { PencilIcon, TrashIcon } from "@heroicons/vue/24/solid";
 import BaseButton from "../BaseComponents/BaseButton.vue";
+import BaseSelect from "../BaseComponents/BaseSelect.vue";
 
 export default {
-  components: { PencilIcon, TrashIcon, BaseButton },
+  components: { PencilIcon, TrashIcon, BaseButton, BaseSelect },
   data() {
     return {
       users: [],
@@ -92,8 +90,6 @@ export default {
     async fetchUsers() {
       const res = await getUsers();
       this.users = res.data;
-
-      // Optional: you could fetch user criterias for the selected session here
     },
     async removeUser(id) {
       if (confirm("Are you sure you want to delete this user?")) {

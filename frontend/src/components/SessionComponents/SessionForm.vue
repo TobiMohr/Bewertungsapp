@@ -28,20 +28,7 @@
             class="flex items-center justify-between"
           >
             <span class="text-gray-800">{{ crit.name }}</span>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                v-model="selectedCriteria"
-                :value="crit.id"
-                class="sr-only peer"
-              />
-              <div
-                class="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:bg-green-500 transition-colors"
-              ></div>
-              <div
-                class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform peer-checked:translate-x-5"
-              ></div>
-            </label>
+            <BaseToggle v-model="checkedCriteria[crit.id]" />
           </div>
         </div>
       </div>
@@ -64,11 +51,12 @@
 <script>
 import BaseInput from "@/components/BaseComponents/BaseInput.vue";
 import BaseButton from "@/components/BaseComponents/BaseButton.vue";
+import BaseToggle from "@/components/BaseComponents/BaseToggle.vue";
 import { getCriterias } from "../../api/criterias";
 import { createSession } from "../../api/sessions";
 
 export default {
-  components: { BaseInput, BaseButton },
+  components: { BaseInput, BaseButton, BaseToggle },
   data() {
     return {
       session: {
@@ -76,16 +64,26 @@ export default {
         description: "",
       },
       criteria: [],
-      selectedCriteria: [],
+      checkedCriteria: {}, // Mapping crit.id -> true/false
     };
+  },
+  computed: {
+    selectedCriteria() {
+        return Object.entries(this.checkedCriteria)
+            .filter(entry => entry[1])          // entry[1] ist der Wert (true/false)
+            .map(entry => Number(entry[0]));    // entry[0] ist der Key
+    },
   },
   methods: {
     async fetchCriteria() {
       try {
         const res = await getCriterias();
         this.criteria = res.data;
-        // Alle Kriterien standardmäßig ausgewählt
-        this.selectedCriteria = this.criteria.map(c => c.id);
+
+        // Standardmäßig alle Kriterien ausgewählt
+        this.checkedCriteria = Object.fromEntries(
+          this.criteria.map((c) => [c.id, true])
+        );
       } catch (err) {
         console.error("Failed to load criteria", err);
       }
