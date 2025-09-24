@@ -4,6 +4,7 @@
       type="checkbox"
       class="sr-only peer"
       :checked="modelValue"
+      :disabled="disabled"
       @change="$emit('update:modelValue', $event.target.checked)"
     />
     <div
@@ -22,6 +23,10 @@ export default {
     modelValue: {
       type: Boolean,
       required: true,
+    },
+    disabled: {
+      type: Boolean,
+      default: false,
     },
   },
   emits: ["update:modelValue"],

@@ -29,14 +29,22 @@
         <h3 class="text-lg font-semibold text-gray-700 mb-4">
           Select Criteria
         </h3>
+
+        <p class="text-sm text-gray-500 mb-4">
+            Existing criteria cannot be deselected. You can add new criteria.
+        </p>
+
         <div class="flex flex-col space-y-3">
-          <div
-            v-for="crit in criteria"
-            :key="crit.id"
-            class="flex items-center justify-between"
-          >
+          <div v-for="crit in criteria" :key="crit.id" class="flex items-center justify-between">
             <span class="text-gray-800">{{ crit.name }}</span>
-            <BaseToggle v-model="checkedCriteria[crit.id]" />
+            <BaseToggle
+              v-model="checkedCriteria[crit.id]"
+              :disabled="sessionCriteria.includes(crit.id)"
+              @update:modelValue="val => {
+                console.log('Toggled criteria', crit.id, 'new value:', val);
+                checkedCriteria[crit.id] = val;
+              }"
+            />
           </div>
         </div>
       </div>
@@ -77,20 +85,33 @@ export default {
       sessionCriteria: [],    // IDs of criteria selected in the session
     };
   },
-  computed: {
-    selectedCriteria() {
-      return Object.entries(this.checkedCriteria)
-        .filter(([, value]) => value)
-        .map(([key]) => Number(key));
+  watch: {
+    checkedCriteria: {
+      handler(newVal) {
+        console.log("checkedCriteria changed:", newVal);
+      },
+      deep: true,
     },
   },
   methods: {
     async updateSessionHandler() {
       const id = this.$route.params.id;
+
+      // Collect newly selected criteria (not part of original sessionCriteria)
+      const newSelectedCriteria = Object.entries(this.checkedCriteria)
+        .filter(([critId, value]) => value && !this.sessionCriteria.includes(Number(critId)))
+        .map(([critId]) => Number(critId));
+
+      // Merge with existing session criteria
+      const mergedCriteriaIds = [...this.sessionCriteria, ...newSelectedCriteria];
+
+      console.log("Updating session with criteria IDs:", mergedCriteriaIds);
+
       await updateSession(id, {
         ...this.form,
-        criteria_ids: this.selectedCriteria,
+        criteria: mergedCriteriaIds,
       });
+
       this.$router.push("/sessions");
     },
   },
