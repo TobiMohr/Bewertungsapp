@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-2xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
+  <div class="max-w-4xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
     <!-- Header -->
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-gray-800">Users</h2>
@@ -8,6 +8,17 @@
           Create User
         </BaseButton>
       </router-link>
+    </div>
+
+    <!-- Session selector -->
+    <div class="mb-6">
+      <label class="block mb-2 font-semibold">Select Session</label>
+      <BaseSelect
+        :options="sessions.map(s => ({ label: s.title, value: s.id }))"
+        :modelValue="selectedSession"
+        @update:modelValue="updateSession"
+        class="w-full md:w-1/3"
+      />
     </div>
 
     <!-- User list -->
@@ -20,7 +31,7 @@
         <div>
           <p
             class="text-lg font-medium text-gray-900 cursor-pointer hover:underline"
-            @click="$router.push(`/users/${user.id}`)"
+            @click="$router.push({ path: `/users/${user.id}`, query: { session: selectedSession } })"
           >
             {{ user.first_name }} {{ user.last_name }} - {{ user.email }}
           </p>
@@ -28,7 +39,6 @@
 
         <!-- Actions -->
         <div class="flex items-center space-x-2">
-          <!-- Edit button -->
           <BaseButton
             @click="$router.push(`/users/edit/${user.id}`)"
             class="p-2 rounded-full bg-yellow-500 hover:bg-yellow-600"
@@ -37,7 +47,6 @@
             <PencilIcon class="h-5 w-5" />
           </BaseButton>
 
-          <!-- Delete button -->
           <BaseButton
             @click="removeUser(user.id)"
             class="p-2 rounded-full bg-red-600 hover:bg-red-700"
@@ -58,18 +67,37 @@
 
 <script>
 import { getUsers, deleteUser } from "../../api/users";
+import { getSessions } from "../../api/sessions";
 import { PencilIcon, TrashIcon } from "@heroicons/vue/24/solid";
 import BaseButton from "../BaseComponents/BaseButton.vue";
+import BaseSelect from "../BaseComponents/BaseSelect.vue";
 
 export default {
-  components: { PencilIcon, TrashIcon, BaseButton },
+  components: { PencilIcon, TrashIcon, BaseButton, BaseSelect },
   data() {
-    return { users: [] };
+    return {
+      users: [],
+      sessions: [],
+      selectedSession: null,
+    };
   },
   methods: {
+    async fetchSessions() {
+      const res = await getSessions();
+      this.sessions = res.data;
+
+      // restore session from localStorage if possible
+      const stored = localStorage.getItem("selectedSession");
+      if (stored && this.sessions.some(s => s.id === parseInt(stored))) {
+        this.selectedSession = parseInt(stored);
+      } else if (this.sessions.length) {
+        this.selectedSession = this.sessions[0].id;
+        localStorage.setItem("selectedSession", this.selectedSession);
+      }
+    },
     async fetchUsers() {
-      const response = await getUsers();
-      this.users = response.data;
+      const res = await getUsers();
+      this.users = res.data;
     },
     async removeUser(id) {
       if (confirm("Are you sure you want to delete this user?")) {
@@ -77,8 +105,14 @@ export default {
         this.fetchUsers();
       }
     },
+    updateSession(value) {
+      this.selectedSession = value;
+      localStorage.setItem("selectedSession", value);
+      this.fetchUsers();
+    },
   },
-  mounted() {
+  async mounted() {
+    await this.fetchSessions();
     this.fetchUsers();
   },
 };

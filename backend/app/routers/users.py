@@ -13,28 +13,41 @@ def get_db():
         db_sess.close()
 
 @router.post("/", response_model=schemas.UserRead)
-def create_user(user: schemas.UserCreate, session: Session = Depends(get_db)):
-    existing_user = session.query(models.User).filter(models.User.email == user.email).first()
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    # 🔹 Check if user exists
+    existing_user = db.query(models.User).filter(models.User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Create the user
+    # 🔹 Create new user
     new_user = models.User(
         first_name=user.first_name,
         last_name=user.last_name,
         email=user.email,
         password_hash=security.hash_password(user.password)
     )
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
 
-    # 🔹 Assign all existing criteria to the new user
-    criteria = session.query(models.Criterion).all()
-    for crit in criteria:
-        uc = models.UserCriterion(user_id=new_user.id, criterion_id=crit.id)
-        session.add(uc)
-    session.commit()
+    # 🔹 Create UserCriterion entries for all existing sessions & their criteria
+    sessions = db.query(models.Session).all()
+    for sess in sessions:
+        for crit in sess.criteria:  # alle Kriterien der Session
+            exists = db.query(models.UserCriterion).filter_by(
+                user_id=new_user.id,
+                criterion_id=crit.id,
+                session_id=sess.id
+            ).first()
+            if not exists:
+                uc = models.UserCriterion(
+                    user_id=new_user.id,
+                    criterion_id=crit.id,
+                    session_id=sess.id
+                )
+                db.add(uc)
+
+    db.commit()
 
     return new_user
 
