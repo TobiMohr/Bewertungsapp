@@ -31,6 +31,7 @@ class CriterionRead(CriterionBase):
 class UserCriterionBase(BaseModel):
     user_id: int
     criterion_id: int
+    session_id: int
 
 
 class UserCriterionRead(UserCriterionBase):

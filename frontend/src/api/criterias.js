@@ -9,10 +9,19 @@ export const getCriterion = (id) => axios.get(`${API_URL}/${id}`);
 export const deleteCriterion = (id) => axios.delete(`${API_URL}/${id}`);
 
 // ----- UserCriterion -----
-export const getUserCriterias = (userId) => axios.get(`${API_URL}/user/${userId}`);
-export const assignCriterionToUser = (criterionId, userId) =>
-  axios.post(`${API_URL}/${criterionId}/assign/${userId}`);
-export const incrementUserCriterion = (criterionId, userId) =>
-  axios.post(`${API_URL}/${criterionId}/increment/${userId}`);
-export const setBooleanValue = (criterionId, userId, value) =>
-  axios.put(`${API_URL}/${criterionId}/set/${userId}`, null, { params: { value } });
+export const getUserCriterias = (userId, sessionId) =>
+  axios.get(`${API_URL}/user/${userId}/session/${sessionId}`);
+
+export const assignCriterionToUser = (criterionId, userId, sessionId) =>
+  axios.post(`${API_URL}/${criterionId}/assign/${userId}/session/${sessionId}`);
+
+export const incrementUserCriterion = (criterionId, userId, sessionId) =>
+  axios.post(`${API_URL}/${criterionId}/increment/${userId}/session/${sessionId}`);
+
+export const setBooleanValue = (criterionId, userId, sessionId, value) =>
+  axios.put(
+    `${API_URL}/${criterionId}/set/${userId}/session/${sessionId}`,
+    null,
+    { params: { value } }
+  );
+

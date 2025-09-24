@@ -66,21 +66,26 @@ export default {
   methods: {
     async fetchData() {
       const id = this.$route.params.id;
+      const sessionId = this.$route.query.session; // <-- get session ID from query param
+
       const [userRes, critRes] = await Promise.all([
         getUser(id),
-        getUserCriterias(id),
+        getUserCriterias(id, sessionId), // <-- pass session ID here
       ]);
+
       this.user = userRes.data;
       this.criteria = critRes.data;
     },
     async increment(criterionId) {
       const id = this.$route.params.id;
-      await incrementUserCriterion(criterionId, id);
+      const sessionId = this.$route.query.session;
+      await incrementUserCriterion(criterionId, id, sessionId); // <-- pass session ID
       this.fetchData();
     },
     async toggleBoolean(criterionId, value) {
       const id = this.$route.params.id;
-      await setBooleanValue(criterionId, id, value);
+      const sessionId = this.$route.query.session;
+      await setBooleanValue(criterionId, id, sessionId, value); // <-- pass session ID
     },
   },
   mounted() {
@@ -88,3 +93,4 @@ export default {
   },
 };
 </script>
+
