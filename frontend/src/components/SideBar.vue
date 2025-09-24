@@ -1,6 +1,14 @@
 <template>
-  <aside class="w-64 bg-white shadow-md p-6 flex flex-col min-h-screen">
-    <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+  <aside
+    @mouseenter="openSidebar"
+    @mouseleave="closeSidebar"
+    :class="[
+      'bg-white shadow-md p-6 flex flex-col min-h-screen transition-all duration-300',
+      sidebarOpen ? 'w-64' : 'w-20'
+    ]"
+  >
+    <!-- Title -->
+    <h2 v-if="sidebarOpen" class="text-2xl font-bold mb-6">Dashboard</h2>
 
     <nav class="flex-1">
       <ul class="space-y-2">
@@ -8,138 +16,147 @@
         <li>
           <button
             @click="toggleUsers"
-            class="w-full flex justify-between items-center px-4 py-2 rounded hover:bg-gray-200"
+            class="w-full flex items-center px-4 py-2 rounded hover:bg-gray-200"
           >
-            <span>Users</span>
-            <svg
-              :class="{ 'rotate-90': usersOpen }"
-              class="w-4 h-4 transition-transform"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+            <UserIcon class="w-5 h-5 flex-shrink-0" />
+            <span
+              :class="[
+                'ml-2 whitespace-nowrap transition-opacity duration-200',
+                sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'
+              ]"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+              Users
+            </span>
+            <ChevronRightIcon
+              v-if="!usersOpen && sidebarOpen"
+              class="ml-auto w-4 h-4 transition-transform"
+            />
+            <ChevronDownIcon
+              v-if="usersOpen && sidebarOpen"
+              class="ml-auto w-4 h-4 transition-transform"
+            />
           </button>
 
-          <!-- Users Submenu -->
-          <ul v-show="usersOpen" class="mt-2 ml-4 space-y-1">
+          <!-- Submenu -->
+          <ul v-show="usersOpen && sidebarOpen" class="mt-2 ml-8 space-y-1">
             <li>
               <router-link
                 to="/users"
-                class="block px-4 py-2 rounded hover:bg-gray-200"
+                class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
                 active-class="bg-gray-300 font-semibold"
               >
-                List
+                <ListBulletIcon class="w-5 h-5 flex-shrink-0" />
+                <span class="ml-2">List</span>
               </router-link>
             </li>
             <li>
               <router-link
                 to="/users/create"
-                class="block px-4 py-2 rounded hover:bg-gray-200"
+                class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
                 active-class="bg-gray-300 font-semibold"
               >
-                Create
+                <PlusIcon class="w-5 h-5 flex-shrink-0" />
+                <span class="ml-2">Create</span>
               </router-link>
             </li>
           </ul>
         </li>
 
         <!-- Criterias Menu -->
-        <li class="mt-2">
+        <li>
           <button
             @click="toggleCriterias"
-            class="w-full flex justify-between items-center px-4 py-2 rounded hover:bg-gray-200"
+            class="w-full flex items-center px-4 py-2 rounded hover:bg-gray-200"
           >
-            <span>Criterias</span>
-            <svg
-              :class="{ 'rotate-90': criteriasOpen }"
-              class="w-4 h-4 transition-transform"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+            <ClipboardDocumentListIcon class="w-5 h-5 flex-shrink-0" />
+            <span
+              :class="[
+                'ml-2 whitespace-nowrap transition-opacity duration-200',
+                sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'
+              ]"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+              Criterias
+            </span>
+            <ChevronRightIcon
+              v-if="!criteriasOpen && sidebarOpen"
+              class="ml-auto w-4 h-4 transition-transform"
+            />
+            <ChevronDownIcon
+              v-if="criteriasOpen && sidebarOpen"
+              class="ml-auto w-4 h-4 transition-transform"
+            />
           </button>
 
-          <!-- Criterias Submenu -->
-          <ul v-show="criteriasOpen" class="mt-2 ml-4 space-y-1">
+          <!-- Submenu -->
+          <ul v-show="criteriasOpen && sidebarOpen" class="mt-2 ml-8 space-y-1">
             <li>
               <router-link
                 to="/criterias"
-                class="block px-4 py-2 rounded hover:bg-gray-200"
+                class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
                 active-class="bg-gray-300 font-semibold"
               >
-                List
+                <ListBulletIcon class="w-5 h-5 flex-shrink-0" />
+                <span class="ml-2">List</span>
               </router-link>
             </li>
             <li>
               <router-link
                 to="/criterias/create"
-                class="block px-4 py-2 rounded hover:bg-gray-200"
+                class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
                 active-class="bg-gray-300 font-semibold"
               >
-                Create
+                <PlusIcon class="w-5 h-5 flex-shrink-0" />
+                <span class="ml-2">Create</span>
               </router-link>
             </li>
           </ul>
         </li>
 
         <!-- Sessions Menu -->
-        <li class="mt-2">
+        <li>
           <button
             @click="toggleSessions"
-            class="w-full flex justify-between items-center px-4 py-2 rounded hover:bg-gray-200"
+            class="w-full flex items-center px-4 py-2 rounded hover:bg-gray-200"
           >
-            <span>Sessions</span>
-            <svg
-              :class="{ 'rotate-90': sessionsOpen }"
-              class="w-4 h-4 transition-transform"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+            <CalendarDaysIcon class="w-5 h-5 flex-shrink-0" />
+            <span
+              :class="[
+                'ml-2 whitespace-nowrap transition-opacity duration-200',
+                sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'
+              ]"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+              Sessions
+            </span>
+            <ChevronRightIcon
+              v-if="!sessionsOpen && sidebarOpen"
+              class="ml-auto w-4 h-4 transition-transform"
+            />
+            <ChevronDownIcon
+              v-if="sessionsOpen && sidebarOpen"
+              class="ml-auto w-4 h-4 transition-transform"
+            />
           </button>
 
-          <!-- Sessions Submenu -->
-          <ul v-show="sessionsOpen" class="mt-2 ml-4 space-y-1">
+          <!-- Submenu -->
+          <ul v-show="sessionsOpen && sidebarOpen" class="mt-2 ml-8 space-y-1">
             <li>
               <router-link
                 to="/sessions"
-                class="block px-4 py-2 rounded hover:bg-gray-200"
+                class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
                 active-class="bg-gray-300 font-semibold"
               >
-                List
+                <ListBulletIcon class="w-5 h-5 flex-shrink-0" />
+                <span class="ml-2">List</span>
               </router-link>
             </li>
             <li>
               <router-link
                 to="/sessions/create"
-                class="block px-4 py-2 rounded hover:bg-gray-200"
+                class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
                 active-class="bg-gray-300 font-semibold"
               >
-                Create
+                <PlusIcon class="w-5 h-5 flex-shrink-0" />
+                <span class="ml-2">Create</span>
               </router-link>
             </li>
           </ul>
@@ -150,49 +167,46 @@
     <!-- Logout Button -->
     <button
       @click="logout"
-      class="mt-auto px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+      class="mt-auto flex items-center px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
     >
-      Logout
+      <ArrowRightOnRectangleIcon class="w-5 h-5 flex-shrink-0" />
+      <span v-if="sidebarOpen" class="ml-2">Logout</span>
     </button>
   </aside>
 </template>
 
-<script>
+<script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 
-export default {
-  setup() {
-    const router = useRouter();
+// Heroicons
+import {
+  ChevronRightIcon,
+  ChevronDownIcon,
+  UserIcon,
+  ClipboardDocumentListIcon,
+  CalendarDaysIcon,
+  ListBulletIcon,
+  PlusIcon,
+  ArrowRightOnRectangleIcon,
+} from "@heroicons/vue/24/outline";
 
-    const usersOpen = ref(false);
-    const criteriasOpen = ref(false);
-    const sessionsOpen = ref(false);
+const router = useRouter();
 
-    const toggleUsers = () => {
-      usersOpen.value = !usersOpen.value;
-    };
-    const toggleCriterias = () => {
-      criteriasOpen.value = !criteriasOpen.value;
-    };
-    const toggleSessions = () => {
-      sessionsOpen.value = !sessionsOpen.value;
-    };
+const sidebarOpen = ref(false);
+const usersOpen = ref(false);
+const criteriasOpen = ref(false);
+const sessionsOpen = ref(false);
 
-    const logout = () => {
-      localStorage.removeItem("token");
-      router.push("/login");
-    };
+const openSidebar = () => (sidebarOpen.value = true);
+const closeSidebar = () => (sidebarOpen.value = false);
 
-    return {
-      usersOpen,
-      criteriasOpen,
-      sessionsOpen,
-      toggleUsers,
-      toggleCriterias,
-      toggleSessions,
-      logout,
-    };
-  },
+const toggleUsers = () => (usersOpen.value = !usersOpen.value);
+const toggleCriterias = () => (criteriasOpen.value = !criteriasOpen.value);
+const toggleSessions = () => (sessionsOpen.value = !sessionsOpen.value);
+
+const logout = () => {
+  localStorage.removeItem("token");
+  router.push("/login");
 };
 </script>
