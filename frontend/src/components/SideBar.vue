@@ -12,7 +12,7 @@
           >
             <span>Users</span>
             <svg
-              :class="{'rotate-90': usersOpen}"
+              :class="{ 'rotate-90': usersOpen }"
               class="w-4 h-4 transition-transform"
               fill="none"
               stroke="currentColor"
@@ -59,7 +59,7 @@
           >
             <span>Criterias</span>
             <svg
-              :class="{'rotate-90': criteriasOpen}"
+              :class="{ 'rotate-90': criteriasOpen }"
               class="w-4 h-4 transition-transform"
               fill="none"
               stroke="currentColor"
@@ -98,15 +98,51 @@
           </ul>
         </li>
 
-        <!-- Sessions Menu (only Create) -->
+        <!-- Sessions Menu -->
         <li class="mt-2">
-          <router-link
-            to="/sessions/create"
-            class="block w-full text-left px-4 py-2 rounded hover:bg-gray-200"
-            active-class="bg-gray-300 font-semibold"
+          <button
+            @click="toggleSessions"
+            class="w-full flex justify-between items-center px-4 py-2 rounded hover:bg-gray-200"
           >
-            Create Session
-          </router-link>
+            <span>Sessions</span>
+            <svg
+              :class="{ 'rotate-90': sessionsOpen }"
+              class="w-4 h-4 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+
+          <!-- Sessions Submenu -->
+          <ul v-show="sessionsOpen" class="mt-2 ml-4 space-y-1">
+            <li>
+              <router-link
+                to="/sessions"
+                class="block px-4 py-2 rounded hover:bg-gray-200"
+                active-class="bg-gray-300 font-semibold"
+              >
+                List
+              </router-link>
+            </li>
+            <li>
+              <router-link
+                to="/sessions/create"
+                class="block px-4 py-2 rounded hover:bg-gray-200"
+                active-class="bg-gray-300 font-semibold"
+              >
+                Create
+              </router-link>
+            </li>
+          </ul>
         </li>
       </ul>
     </nav>
@@ -131,12 +167,16 @@ export default {
 
     const usersOpen = ref(false);
     const criteriasOpen = ref(false);
+    const sessionsOpen = ref(false);
 
     const toggleUsers = () => {
       usersOpen.value = !usersOpen.value;
     };
     const toggleCriterias = () => {
       criteriasOpen.value = !criteriasOpen.value;
+    };
+    const toggleSessions = () => {
+      sessionsOpen.value = !sessionsOpen.value;
     };
 
     const logout = () => {
@@ -147,8 +187,10 @@ export default {
     return {
       usersOpen,
       criteriasOpen,
+      sessionsOpen,
       toggleUsers,
       toggleCriterias,
+      toggleSessions,
       logout,
     };
   },
