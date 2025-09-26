@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-4xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
+  <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
     <!-- Header -->
     <h2 class="text-2xl font-bold text-gray-800 mb-2">
       {{ user?.first_name }} {{ user?.last_name }}
