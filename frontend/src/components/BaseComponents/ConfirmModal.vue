@@ -8,7 +8,7 @@
         <h3 class="text-lg font-semibold text-gray-800 mb-4">{{ title }}</h3>
         <p class="text-gray-600 mb-6">{{ message }}</p>
 
-        <div class="flex justify-end space-x-3">
+        <div class="flex justify-between mt-6">
             <!-- Cancel button first (left) -->
             <BaseButton @click="cancel" variant="cancel">
                 Cancel
