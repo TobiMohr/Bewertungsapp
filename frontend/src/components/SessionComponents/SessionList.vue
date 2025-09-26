@@ -31,7 +31,8 @@
         <div class="flex items-center space-x-2">
           <BaseButton
             @click="$router.push(`/sessions/edit/${session.id}`)"
-            class="p-2 rounded-full bg-yellow-500 hover:bg-yellow-600"
+            class="p-2 rounded-full"
+            variant="edit"
             title="Edit session"
           >
             <PencilIcon class="h-5 w-5" />
@@ -39,7 +40,8 @@
 
           <BaseButton
             @click="confirmDelete(session.id)"
-            class="p-2 rounded-full bg-red-600 hover:bg-red-700"
+            class="p-2 rounded-full"
+            variant="delete"
             title="Delete session"
           >
             <TrashIcon class="h-5 w-5" />
