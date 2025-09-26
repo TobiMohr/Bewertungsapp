@@ -17,15 +17,20 @@
         required
       />
 
-      <div class="flex space-x-2">
-        <BaseButton type="submit">{{ isEdit ? "Update" : "Create" }}</BaseButton>
+      <!-- Buttons -->
+      <div class="flex justify-between pt-4">
+        <!-- Cancel button on the left (only in edit mode) -->
         <BaseButton
-          v-if="isEdit"
           type="button"
-          class="bg-gray-400 hover:bg-gray-500"
-          @click="cancelEdit"
+          variant="cancel"
+          @click="cancel"
         >
           Cancel
+        </BaseButton>
+
+        <!-- Create/Update button on the right -->
+        <BaseButton type="submit">
+          {{ isEdit ? "Update" : "Create" }}
         </BaseButton>
       </div>
     </form>
@@ -68,7 +73,7 @@ export default {
         alert(err.response?.data?.detail || "Operation failed");
       }
     },
-    cancelEdit() {
+    cancel() {
       this.$router.push("/users");
     },
   },
