@@ -84,7 +84,7 @@ export default {
   methods: {
     async fetchSessions() {
       const res = await getSessions();
-      this.sessions = res.data;
+      this.sessions = res.data; // keep backend order
 
       // restore session from localStorage if possible
       const stored = localStorage.getItem("selectedSession");
@@ -97,7 +97,11 @@ export default {
     },
     async fetchUsers() {
       const res = await getUsers();
-      this.users = res.data;
+      this.users = res.data.sort((a, b) => {
+        const last = a.last_name.localeCompare(b.last_name, "en", { sensitivity: "base" });
+        if (last !== 0) return last;
+        return a.first_name.localeCompare(b.first_name, "en", { sensitivity: "base" });
+      });
     },
     async removeUser(id) {
       if (confirm("Are you sure you want to delete this user?")) {

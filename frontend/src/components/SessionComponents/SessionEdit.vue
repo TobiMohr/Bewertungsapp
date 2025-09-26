@@ -31,20 +31,47 @@
         </h3>
 
         <p class="text-sm text-gray-500 mb-4">
-            Existing criteria cannot be deselected. You can add new criteria.
+          Existing criteria cannot be deselected. You can add new criteria and adjust weights.
         </p>
 
         <div class="flex flex-col space-y-3">
-          <div v-for="crit in criteria" :key="crit.id" class="flex items-center justify-between">
-            <span class="text-gray-800">{{ crit.name }}</span>
-            <BaseToggle
-              v-model="checkedCriteria[crit.id]"
-              :disabled="sessionCriteria.includes(crit.id)"
-              @update:modelValue="val => {
-                console.log('Toggled criteria', crit.id, 'new value:', val);
-                checkedCriteria[crit.id] = val;
-              }"
-            />
+          <div
+            v-for="crit in criteria"
+            :key="crit.id"
+            class="flex items-center justify-between space-x-4"
+          >
+            <!-- Left column: Name + Toggle + Lock -->
+            <div class="flex items-center space-x-2 w-3/4">
+              <span class="text-gray-800 w-40 truncate">{{ crit.name }}</span>
+              
+              <div class="flex items-center space-x-1">
+                <BaseToggle
+                  v-model="checkedCriteria[String(crit.id)]"
+                  :disabled="sessionCriteriaIds.includes(crit.id)"
+                />
+                <LockClosedIcon
+                  v-if="sessionCriteriaIds.includes(crit.id)"
+                  class="h-4 w-4 text-gray-400"
+                />
+              </div>
+            </div>
+
+            <!-- Right column: Weight Input -->
+            <div class="flex items-center space-x-2 w-1/4 justify-end">
+              <label
+                v-if="checkedCriteria[String(crit.id)]"
+                class="text-sm text-gray-600"
+              >
+                Weight
+              </label>
+              <input
+                v-if="checkedCriteria[String(crit.id)]"
+                type="number"
+                min="0"
+                v-model.number="criteriaWeights[String(crit.id)]"
+                class="w-16 border border-gray-300 rounded px-1 py-1 text-center"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -68,89 +95,86 @@
 
 <script>
 import { getSession, updateSession } from "../../api/sessions";
+import { getCriterias } from "../../api/criterias";
 import BaseButton from "../BaseComponents/BaseButton.vue";
 import BaseToggle from "../BaseComponents/BaseToggle.vue";
-import { getCriterias } from "../../api/criterias";
+import { LockClosedIcon } from '@heroicons/vue/24/solid';
 
 export default {
-  components: { BaseButton, BaseToggle },
+  components: { BaseButton, BaseToggle, LockClosedIcon },
   data() {
     return {
       form: {
         title: "",
         description: "",
       },
-      criteria: [],           // All available criteria
-      checkedCriteria: {},    // Mapping crit.id -> true/false
-      sessionCriteria: [],    // IDs of criteria selected in the session
+      criteria: [],               // All available criteria from /criterias
+      checkedCriteria: {},        // Mapping string(id) -> boolean
+      criteriaWeights: {},        // Mapping string(id) -> number (0 allowed)
+      sessionCriteriaIds: [],     // IDs of criteria that already belong to the session
     };
-  },
-  watch: {
-    checkedCriteria: {
-      handler(newVal) {
-        console.log("checkedCriteria changed:", newVal);
-      },
-      deep: true,
-    },
   },
   methods: {
     async updateSessionHandler() {
       const id = this.$route.params.id;
 
-      // Collect newly selected criteria (not part of original sessionCriteria)
-      const newSelectedCriteria = Object.entries(this.checkedCriteria)
-        .filter(([critId, value]) => value && !this.sessionCriteria.includes(Number(critId)))
-        .map(([critId]) => Number(critId));
+      const payloadCriteria = Object.entries(this.checkedCriteria)
+        .filter(([, checked]) => checked)
+        .map(([idStr]) => {
+          const weight = this.criteriaWeights[idStr] ?? 0;
+          return { id: Number(idStr), weight };
+        });
 
-      // Merge with existing session criteria
-      const mergedCriteriaIds = [...this.sessionCriteria, ...newSelectedCriteria];
-
-      console.log("Updating session with criteria IDs:", mergedCriteriaIds);
-
-      await updateSession(id, {
-        ...this.form,
-        criteria: mergedCriteriaIds,
-      });
-
-      this.$router.push("/sessions");
+      try {
+        await updateSession(id, {
+          ...this.form,
+          criteria: payloadCriteria,
+        });
+        this.$router.push("/sessions");
+      } catch (err) {
+        console.error("Failed to update session:", err);
+        alert(err.response?.data?.detail || "Failed to update session");
+      }
     },
   },
   async mounted() {
     try {
-      // 1️⃣ Fetch all criteria
+      // 1) fetch all available criteria
       const criteriaRes = await getCriterias();
       this.criteria = criteriaRes.data;
 
-      // Initialize all as false
-      this.checkedCriteria = Object.fromEntries(
-        this.criteria.map(c => [c.id, false])
-      );
+      // init maps with defaults (keys as strings for v-model)
+      this.checkedCriteria = Object.fromEntries(this.criteria.map(c => [String(c.id), false]));
+      this.criteriaWeights = Object.fromEntries(this.criteria.map(c => [String(c.id), 0]));
 
-      console.log("All criteria fetched:", this.criteria);
-
-      // 2️⃣ Fetch session data
+      // 2) fetch session
       const sessionRes = await getSession(this.$route.params.id);
-      this.form.title = sessionRes.data.title;
-      this.form.description = sessionRes.data.description;
+      const s = sessionRes.data;
+      this.form.title = s.title;
+      this.form.description = s.description;
 
-      if (sessionRes.data.criteria) {
-        this.sessionCriteria = sessionRes.data.criteria.map(c => c.id);
+      // backend returns session_criteria_assoc: [{ criterion: {...}, weight: N }, ...]
+      if (Array.isArray(s.session_criteria_assoc)) {
+        s.session_criteria_assoc.forEach((assoc) => {
+          const cid = assoc.criterion.id;
+          this.sessionCriteriaIds.push(cid);
+          this.checkedCriteria[String(cid)] = true;
+          this.criteriaWeights[String(cid)] = assoc.weight ?? 0;
+        });
       }
 
-      console.log("Fetched session:", sessionRes.data);
-      console.log("Session criteria IDs:", this.sessionCriteria);
-
-      // 3️⃣ Apply session-selected criteria to checkedCriteria
-      this.sessionCriteria.forEach(id => {
-        if (id in this.checkedCriteria) {
-          this.checkedCriteria[id] = true;
+      // defensive: ensure all session criteria are initialized
+      this.sessionCriteriaIds.forEach(cid => {
+        if (!(String(cid) in this.checkedCriteria)) {
+          this.$set(this.checkedCriteria, String(cid), true);
+        }
+        if (!(String(cid) in this.criteriaWeights)) {
+          this.$set(this.criteriaWeights, String(cid), 0);
         }
       });
-
-      console.log("Checked criteria mapping:", this.checkedCriteria);
-
     } catch (err) {
       console.error("Failed to fetch session or criteria:", err);
+      alert("Failed to load session data");
     }
   },
 };

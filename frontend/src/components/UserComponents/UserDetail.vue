@@ -19,7 +19,10 @@
         <p class="text-gray-900 font-medium">{{ c.criterion.name }}</p>
 
         <!-- Countable criterion -->
-        <div v-if="c.criterion.type === 'countable'" class="flex items-center space-x-2">
+        <div
+          v-if="c.criterion.type === 'countable'"
+          class="flex items-center space-x-2"
+        >
           <span class="text-gray-700 font-bold text-lg">{{ c.count_value ?? 0 }}</span>
           <BaseButton
             class="w-8 h-8 flex items-center justify-center p-0 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xl shadow"
@@ -53,7 +56,11 @@
 <script>
 import BaseButton from "../BaseComponents/BaseButton.vue";
 import { getUser } from "../../api/users";
-import { getUserCriterias, incrementUserCriterion, setBooleanValue } from "../../api/criterias";
+import {
+  getUserCriterias,
+  incrementUserCriterion,
+  setBooleanValue,
+} from "../../api/criterias";
 
 export default {
   components: { BaseButton },
@@ -74,7 +81,13 @@ export default {
       ]);
 
       this.user = userRes.data;
-      this.criteria = critRes.data;
+
+      // sort alphabetically by criterion name (case-insensitive)
+      this.criteria = critRes.data.sort((a, b) =>
+        a.criterion.name.localeCompare(b.criterion.name, "en", {
+          sensitivity: "base",
+        })
+      );
     },
     async increment(criterionId) {
       const id = this.$route.params.id;
@@ -93,4 +106,3 @@ export default {
   },
 };
 </script>
-

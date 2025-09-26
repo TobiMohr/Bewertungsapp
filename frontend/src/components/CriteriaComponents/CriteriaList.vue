@@ -18,7 +18,6 @@
         <div>
           <p class="text-lg font-medium text-gray-900">
             {{ crit.name }}
-            <!-- Optionally hide type if not needed -->
             <span class="text-gray-500 text-sm">({{ crit.type }})</span>
           </p>
         </div>
@@ -43,7 +42,9 @@ export default {
   methods: {
     async fetchCriterias() {
       const response = await getCriterias();
-      this.criterias = response.data;
+      this.criterias = response.data.sort((a, b) =>
+        a.name.localeCompare(b.name, "en", { sensitivity: "base" })
+      );
     },
   },
   mounted() {
