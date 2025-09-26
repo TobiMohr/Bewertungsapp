@@ -25,10 +25,21 @@
           <div
             v-for="crit in criteria"
             :key="crit.id"
-            class="flex items-center justify-between"
+            class="flex items-center justify-between space-x-4"
           >
-            <span class="text-gray-800">{{ crit.name }}</span>
+            <span class="text-gray-800 w-1/3">{{ crit.name }}</span>
+
+            <!-- Toggle -->
             <BaseToggle v-model="checkedCriteria[crit.id]" />
+
+            <!-- Weight input (nur sichtbar, wenn aktiviert) -->
+            <input
+              v-if="checkedCriteria[crit.id]"
+              type="number"
+              min="1"
+              v-model.number="criteriaWeights[crit.id]"
+              class="border rounded px-2 py-1 w-20 text-center"
+            />
           </div>
         </div>
       </div>
@@ -64,14 +75,18 @@ export default {
         description: "",
       },
       criteria: [],
-      checkedCriteria: {}, // Mapping crit.id -> true/false
+      checkedCriteria: {},   // Mapping: crit.id -> true/false
+      criteriaWeights: {},   // Mapping: crit.id -> weight
     };
   },
   computed: {
     selectedCriteria() {
-        return Object.entries(this.checkedCriteria)
-            .filter(entry => entry[1])          // entry[1] ist der Wert (true/false)
-            .map(entry => Number(entry[0]));    // entry[0] ist der Key
+      return Object.entries(this.checkedCriteria)
+        .filter(([, isChecked]) => isChecked)
+        .map(([id]) => ({
+          id: Number(id),
+          weight: this.criteriaWeights[id] || 1, // Fallback default=1
+        }));
     },
   },
   methods: {
@@ -80,9 +95,12 @@ export default {
         const res = await getCriterias();
         this.criteria = res.data;
 
-        // Standardmäßig alle Kriterien ausgewählt
+        // Standardmäßig: alle ausgewählt und weight = 1
         this.checkedCriteria = Object.fromEntries(
           this.criteria.map((c) => [c.id, true])
+        );
+        this.criteriaWeights = Object.fromEntries(
+          this.criteria.map((c) => [c.id, 1])
         );
       } catch (err) {
         console.error("Failed to load criteria", err);
@@ -92,7 +110,7 @@ export default {
       try {
         await createSession({
           ...this.session,
-          criteria_ids: this.selectedCriteria,
+          criteria: this.selectedCriteria,
         });
         this.$router.push("/");
       } catch (err) {

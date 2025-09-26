@@ -12,7 +12,6 @@ from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
 
 from ..db import Base
-from .session_criteria_association import session_criteria_association
 
 
 # --- Enum for the criterion type ---
@@ -33,11 +32,8 @@ class Criterion(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     users = relationship("UserCriterion", back_populates="criterion")
-    sessions = relationship(
-        "Session",
-        secondary=session_criteria_association,
-        back_populates="criteria"
-    )
+    sessions = relationship("Session", secondary="session_criteria_association", back_populates="criteria")
+    session_criteria_assoc = relationship("SessionCriterion", back_populates="criterion", cascade="all, delete-orphan")
 
 
 # --- Association table between User and Criterion ---

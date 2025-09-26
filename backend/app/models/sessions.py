@@ -1,9 +1,6 @@
-from sqlalchemy import Column, Integer, Table, String, DateTime, func, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, func
 from sqlalchemy.orm import relationship
-from .session_criteria_association import session_criteria_association
-
 from ..db import Base
-
 
 class Session(Base):
     __tablename__ = "sessions"
@@ -17,8 +14,5 @@ class Session(Base):
 
     # Relationships
     user_criteria = relationship("UserCriterion", back_populates="session")
-    criteria = relationship(
-        "Criterion",
-        secondary=session_criteria_association,
-        back_populates="sessions"
-    )
+    session_criteria_assoc = relationship("SessionCriterion", back_populates="session", cascade="all, delete-orphan")
+    criteria = relationship("Criterion", secondary="session_criteria_association", back_populates="sessions")
