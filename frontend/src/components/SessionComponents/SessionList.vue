@@ -38,7 +38,7 @@
           </BaseButton>
 
           <BaseButton
-            @click="removeSession(session.id)"
+            @click="confirmDelete(session.id)"
             class="p-2 rounded-full bg-red-600 hover:bg-red-700"
             title="Delete session"
           >
@@ -52,6 +52,15 @@
     <p v-if="!sessions.length" class="text-gray-500 mt-4 text-center">
       No sessions found.
     </p>
+
+    <!-- Confirm Modal -->
+    <ConfirmModal
+      :isOpen="showDeleteModal"
+      title="Delete Session"
+      message="Are you sure you want to delete this session?"
+      @confirm="deleteConfirmed"
+      @cancel="showDeleteModal = false"
+    />
   </div>
 </template>
 
@@ -59,12 +68,15 @@
 import { getSessions, deleteSession } from "../../api/sessions";
 import { PencilIcon, TrashIcon } from "@heroicons/vue/24/solid";
 import BaseButton from "../BaseComponents/BaseButton.vue";
+import ConfirmModal from "../BaseComponents/ConfirmModal.vue";
 
 export default {
-  components: { PencilIcon, TrashIcon, BaseButton },
+  components: { PencilIcon, TrashIcon, BaseButton, ConfirmModal },
   data() {
     return {
       sessions: [],
+      showDeleteModal: false,
+      sessionToDelete: null,
     };
   },
   methods: {
@@ -72,9 +84,15 @@ export default {
       const res = await getSessions();
       this.sessions = res.data;
     },
-    async removeSession(id) {
-      if (confirm("Are you sure you want to delete this session?")) {
-        await deleteSession(id);
+    confirmDelete(id) {
+      this.sessionToDelete = id;
+      this.showDeleteModal = true;
+    },
+    async deleteConfirmed() {
+      if (this.sessionToDelete) {
+        await deleteSession(this.sessionToDelete);
+        this.showDeleteModal = false;
+        this.sessionToDelete = null;
         this.fetchSessions();
       }
     },

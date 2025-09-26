@@ -48,7 +48,7 @@
           </BaseButton>
 
           <BaseButton
-            @click="removeUser(user.id)"
+            @click="confirmDelete(user.id)"
             class="p-2 rounded-full bg-red-600 hover:bg-red-700"
             title="Delete user"
           >
@@ -62,6 +62,15 @@
     <p v-if="!users.length" class="text-gray-500 mt-4 text-center">
       No users found.
     </p>
+
+    <!-- Confirm Modal -->
+    <ConfirmModal
+      :isOpen="showDeleteModal"
+      title="Delete User"
+      message="Are you sure you want to delete this user?"
+      @confirm="deleteConfirmed"
+      @cancel="showDeleteModal = false"
+    />
   </div>
 </template>
 
@@ -71,22 +80,24 @@ import { getSessions } from "../../api/sessions";
 import { PencilIcon, TrashIcon } from "@heroicons/vue/24/solid";
 import BaseButton from "../BaseComponents/BaseButton.vue";
 import BaseSelect from "../BaseComponents/BaseSelect.vue";
+import ConfirmModal from "../BaseComponents/ConfirmModal.vue";
 
 export default {
-  components: { PencilIcon, TrashIcon, BaseButton, BaseSelect },
+  components: { PencilIcon, TrashIcon, BaseButton, BaseSelect, ConfirmModal },
   data() {
     return {
       users: [],
       sessions: [],
       selectedSession: null,
+      showDeleteModal: false,
+      userToDelete: null,
     };
   },
   methods: {
     async fetchSessions() {
       const res = await getSessions();
-      this.sessions = res.data; // keep backend order
+      this.sessions = res.data;
 
-      // restore session from localStorage if possible
       const stored = localStorage.getItem("selectedSession");
       if (stored && this.sessions.some(s => s.id === parseInt(stored))) {
         this.selectedSession = parseInt(stored);
@@ -103,9 +114,15 @@ export default {
         return a.first_name.localeCompare(b.first_name, "en", { sensitivity: "base" });
       });
     },
-    async removeUser(id) {
-      if (confirm("Are you sure you want to delete this user?")) {
-        await deleteUser(id);
+    confirmDelete(userId) {
+      this.userToDelete = userId;
+      this.showDeleteModal = true;
+    },
+    async deleteConfirmed() {
+      if (this.userToDelete) {
+        await deleteUser(this.userToDelete);
+        this.showDeleteModal = false;
+        this.userToDelete = null;
         this.fetchUsers();
       }
     },
