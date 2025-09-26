@@ -19,11 +19,13 @@ export default {
     variantClasses() {
       switch (this.variant) {
         case 'cancel':
-          return 'bg-gray-300 hover:bg-gray-400 text-gray-800';
+          return 'bg-gray-400 hover:bg-gray-500 text-gray-800';
+        case 'edit':
+          return 'bg-yellow-400 hover:bg-yellow-500'
         case 'delete':
           return 'bg-red-600 hover:bg-red-700';
         default:
-          return 'bg-indigo-600 hover:bg-indigo-700';
+          return 'bg-green-600 hover:bg-green-700';
       }
     },
   },
