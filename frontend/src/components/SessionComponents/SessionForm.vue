@@ -45,14 +45,19 @@
       </div>
 
       <!-- Buttons -->
-      <div class="flex space-x-2 pt-4">
-        <BaseButton type="submit">Create</BaseButton>
+      <div class="flex justify-between pt-4">
+        <!-- Cancel button on the left -->
         <BaseButton
           type="button"
-          class="bg-gray-400 hover:bg-gray-500"
+          variant="cancel"
           @click="$router.push('/')"
         >
           Cancel
+        </BaseButton>
+
+        <!-- Create button on the right -->
+        <BaseButton type="submit">
+          Create
         </BaseButton>
       </div>
     </form>

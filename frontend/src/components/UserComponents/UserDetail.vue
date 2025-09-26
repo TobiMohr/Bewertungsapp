@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-2xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
+  <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
     <!-- Header -->
     <h2 class="text-2xl font-bold text-gray-800 mb-2">
       {{ user?.first_name }} {{ user?.last_name }}
@@ -8,12 +8,12 @@
 
     <h3 class="text-xl font-semibold text-gray-700 mb-4">Criteria</h3>
 
-    <!-- Criteria list -->
-    <ul v-if="criteria.length" class="divide-y divide-gray-200">
-      <li
+    <!-- Criteria grid -->
+    <div v-if="criteria.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div
         v-for="c in criteria"
         :key="c.id"
-        class="py-4 flex justify-between items-center"
+        class="flex justify-between items-center p-3 border rounded-lg shadow-sm"
       >
         <!-- Criterion name -->
         <p class="text-gray-900 font-medium">{{ c.criterion.name }}</p>
@@ -43,8 +43,8 @@
             />
           </label>
         </div>
-      </li>
-    </ul>
+      </div>
+    </div>
 
     <!-- Empty state -->
     <p v-else class="text-gray-500 mt-4 text-center">
@@ -73,11 +73,11 @@ export default {
   methods: {
     async fetchData() {
       const id = this.$route.params.id;
-      const sessionId = this.$route.query.session; // <-- get session ID from query param
+      const sessionId = this.$route.query.session;
 
       const [userRes, critRes] = await Promise.all([
         getUser(id),
-        getUserCriterias(id, sessionId), // <-- pass session ID here
+        getUserCriterias(id, sessionId),
       ]);
 
       this.user = userRes.data;
@@ -92,13 +92,13 @@ export default {
     async increment(criterionId) {
       const id = this.$route.params.id;
       const sessionId = this.$route.query.session;
-      await incrementUserCriterion(criterionId, id, sessionId); // <-- pass session ID
+      await incrementUserCriterion(criterionId, id, sessionId);
       this.fetchData();
     },
     async toggleBoolean(criterionId, value) {
       const id = this.$route.params.id;
       const sessionId = this.$route.query.session;
-      await setBooleanValue(criterionId, id, sessionId, value); // <-- pass session ID
+      await setBooleanValue(criterionId, id, sessionId, value);
     },
   },
   mounted() {

@@ -80,12 +80,12 @@
       <div class="flex justify-between pt-4">
         <BaseButton
           type="button"
-          class="bg-gray-400 hover:bg-gray-500"
+          variant="cancel"
           @click="$router.push('/sessions')"
         >
           Cancel
         </BaseButton>
-        <BaseButton type="submit" class="bg-blue-500 hover:bg-blue-600">
+        <BaseButton type="submit">
           Update Session
         </BaseButton>
       </div>

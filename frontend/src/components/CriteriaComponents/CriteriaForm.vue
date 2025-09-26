@@ -18,16 +18,22 @@
         :options="typeOptions"
         placeholder="Select Type"
         required
-        />
+      />
 
-      <div class="flex space-x-2">
-        <BaseButton type="submit">Create</BaseButton>
+      <!-- Buttons -->
+      <div class="flex justify-between pt-4">
+        <!-- Cancel button on the left -->
         <BaseButton
           type="button"
-          class="bg-gray-400 hover:bg-gray-500"
+          variant="cancel"
           @click="$router.push('/criterias')"
         >
           Cancel
+        </BaseButton>
+
+        <!-- Create button on the right -->
+        <BaseButton type="submit">
+          Create
         </BaseButton>
       </div>
     </form>
@@ -44,11 +50,11 @@ export default {
   components: { BaseInput, BaseButton, BaseSelect },
   data() {
     return {
-        criterion: { name: "", type: "" },
-        typeOptions: [
+      criterion: { name: "", type: "" },
+      typeOptions: [
         { label: "Boolean", value: "boolean" },
         { label: "Countable", value: "countable" },
-        ],
+      ],
     };
   },
   methods: {
