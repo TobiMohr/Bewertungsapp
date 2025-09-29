@@ -1,9 +1,14 @@
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-load_dotenv()
+if os.getenv("DOCKER_ENV", "false").lower() == "true":
+    env_file = ".env.docker"
+else:
+    env_file = ".env.local"
+
+load_dotenv(find_dotenv(env_file))
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
