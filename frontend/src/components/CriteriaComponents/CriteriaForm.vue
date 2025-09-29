@@ -54,6 +54,7 @@ export default {
       typeOptions: [
         { label: "Boolean", value: "boolean" },
         { label: "Countable", value: "countable" },
+        { label: "Text", value: "text" },
       ],
     };
   },

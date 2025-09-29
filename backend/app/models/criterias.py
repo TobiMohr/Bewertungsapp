@@ -19,6 +19,7 @@ from ..db import Base
 class CriterionType(PyEnum):
     countable = "countable"
     boolean = "boolean"
+    text = "text"
 
 
 # --- Criterion table ---
@@ -50,6 +51,9 @@ class UserCriterion(Base):
 
     # For BOOLEAN type: store whether the criterion is fulfilled
     is_fulfilled = Column(Boolean, nullable=False, default=False)
+
+    # For TEXT type
+    text_value = Column(String, nullable=True)
     
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

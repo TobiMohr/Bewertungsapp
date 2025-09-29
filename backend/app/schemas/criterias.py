@@ -7,6 +7,7 @@ from typing import Optional
 class CriterionType(str, Enum):
     countable = "countable"
     boolean = "boolean"
+    text = "text"
 
 
 # ---------- Criterion ----------   
@@ -38,6 +39,7 @@ class UserCriterionRead(UserCriterionBase):
     id: int
     count_value: Optional[int] = None
     is_fulfilled: Optional[bool] = None
+    text_value: Optional[str] = None
     criterion: Optional[CriterionRead] = None
 
     class Config:

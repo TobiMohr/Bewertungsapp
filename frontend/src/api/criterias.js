@@ -25,3 +25,9 @@ export const setBooleanValue = (criterionId, userId, sessionId, value) =>
     { params: { value } }
   );
 
+  export const setTextValue = (criterionId, userId, sessionId, value) =>
+  axios.put(
+    `${API_URL}/${criterionId}/text/${userId}/session/${sessionId}`,
+    { value } 
+  );
+
