@@ -2,9 +2,10 @@
   <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
     <!-- Header -->
     <h2 class="text-2xl font-bold text-gray-800 mb-2">
-      {{ user?.first_name }} {{ user?.last_name }}
+      {{ session?.title }} von {{ user?.first_name }} {{ user?.last_name }}
     </h2>
-    <p class="text-gray-600 mb-6">{{ user?.email }}</p>
+    <p class="text-gray-600 mb-2">{{ user?.email }}</p>
+
 
     <h3 class="text-xl font-semibold text-gray-700 mb-4">Criteria</h3>
 
@@ -15,7 +16,6 @@
         :key="c.id"
         class="flex justify-between items-center p-3 border rounded-lg shadow-sm"
       >
-        <!-- Criterion name -->
         <p class="text-gray-900 font-medium">{{ c.criterion.name }}</p>
 
         <!-- Countable criterion -->
@@ -89,7 +89,6 @@
       </div>
     </div>
 
-    <!-- Empty state -->
     <p v-else class="text-gray-500 mt-4 text-center">
       No criteria assigned to this user.
     </p>
@@ -99,6 +98,7 @@
 <script>
 import BaseButton from "../BaseComponents/BaseButton.vue";
 import { getUser } from "../../api/users";
+import { getSession } from "../../api/sessions";
 import { DocumentTextIcon , PlusIcon } from "@heroicons/vue/24/solid";
 import {
   getUserCriterias,
@@ -116,6 +116,7 @@ export default {
       showTextModal: false,
       activeCriterion: null,
       textDraft: "",
+      session: null,
     };
   },
   methods: {
@@ -123,18 +124,17 @@ export default {
       const id = this.$route.params.id;
       const sessionId = this.$route.query.session;
 
-      const [userRes, critRes] = await Promise.all([
+      const [userRes, critRes, sessionRes] = await Promise.all([
         getUser(id),
         getUserCriterias(id, sessionId),
+        getSession(sessionId),
       ]);
 
       this.user = userRes.data;
+      this.session = sessionRes.data;
 
-      // sort alphabetically by criterion name (case-insensitive)
       this.criteria = critRes.data.sort((a, b) =>
-        a.criterion.name.localeCompare(b.criterion.name, "en", {
-          sensitivity: "base",
-        })
+        a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
       );
     },
     async increment(criterionId) {
