@@ -1,5 +1,11 @@
-# Environment file
+# Environment files
+backend/.env.local
+backend/.env.docker
+frontend/.env.local
+frontend/.env.docker
 .env
+.env.*
+
 
 # Python cache folders
 __pycache__/
