@@ -6,11 +6,13 @@
       <input v-model="credentials.password" type="password" placeholder="Password" class="input" required />
       <button type="submit" class="btn">Login</button>
     </form>
+    <p v-if="error" class="text-red-500 mt-2">{{ error }}</p>
   </div>
 </template>
 
 <script>
 import { loginUser } from "../../api/auth";
+import { useAuth } from "../../stores/auth";
 
 export default {
   data() {
@@ -19,14 +21,18 @@ export default {
         email: "",
         password: "",
       },
+      error: null,
     };
+  },
+  setup() {
+    const { login } = useAuth();
+    return { login };
   },
   methods: {
     async submitForm() {
       try {
         const response = await loginUser(this.credentials);
-        localStorage.setItem("token", response.data.access_token); // save token
-        this.$emit("login-success"); // tell parent
+        this.login(response.data.access_token); // ✅ reaktiver Store
         this.$router.push("/users");
       } catch (err) {
         this.error = "Login failed";
