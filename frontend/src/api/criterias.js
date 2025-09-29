@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:8000/criteria";
+const API_BASE = process.env.VUE_APP_API_URL || "/api";
+const API_URL = `${API_BASE}/criteria`;
 
 // ----- Criterion -----
 export const getCriterias = () => axios.get(API_URL);
@@ -25,9 +26,8 @@ export const setBooleanValue = (criterionId, userId, sessionId, value) =>
     { params: { value } }
   );
 
-  export const setTextValue = (criterionId, userId, sessionId, value) =>
+export const setTextValue = (criterionId, userId, sessionId, value) =>
   axios.put(
     `${API_URL}/${criterionId}/text/${userId}/session/${sessionId}`,
-    { value } 
+    { value }
   );
-

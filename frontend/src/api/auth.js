@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:8000/auth";
+const API_BASE = process.env.VUE_APP_API_URL || "/api";
+const API_URL = `${API_BASE}/auth`;
 
-export const registerUser = (user) => axios.post(`${API_URL}/register`, user);
-export const loginUser = (credentials) => axios.post(`${API_URL}/login`, credentials);
+export const registerUser = (user) => axios.post(`${API_URL}/register/`, user);
+export const loginUser = (credentials) => axios.post(`${API_URL}/login/`, credentials);
