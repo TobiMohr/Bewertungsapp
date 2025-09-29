@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -161,6 +161,38 @@ def set_boolean_value(
         session.add(uc)
 
     uc.is_fulfilled = value
+    session.commit()
+    session.refresh(uc)
+    return uc
+
+@router.put("/{criterion_id}/text/{user_id}/session/{session_id}", response_model=UserCriterionRead)
+def set_text_value(
+    criterion_id: int,
+    user_id: int,
+    session_id: int,
+    value: str = Body(..., embed=True, description="Text for this criterion"),
+    session: Session = Depends(get_db)
+):
+    criterion = session.query(Criterion).get(criterion_id)
+    db_session = session.query(DbSession).get(session_id)
+
+    if not criterion:
+        raise HTTPException(status_code=404, detail="Criterion not found")
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if criterion.type.value != "text":
+        raise HTTPException(status_code=400, detail=f"Criterion is not type: text, it is type:'{criterion.type.value}'")
+
+    uc = (
+        session.query(UserCriterion)
+        .filter_by(user_id=user_id, criterion_id=criterion_id, session_id=session_id)
+        .first()
+    )
+    if not uc:
+        uc = UserCriterion(user_id=user_id, criterion_id=criterion_id, session_id=session_id)
+        session.add(uc)
+
+    uc.text_value = value
     session.commit()
     session.refresh(uc)
     return uc
