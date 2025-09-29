@@ -2,9 +2,10 @@
   <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
     <!-- Header -->
     <h2 class="text-2xl font-bold text-gray-800 mb-2">
-      {{ user?.first_name }} {{ user?.last_name }}
+      {{ session?.title }} von {{ user?.first_name }} {{ user?.last_name }}
     </h2>
-    <p class="text-gray-600 mb-6">{{ user?.email }}</p>
+    <p class="text-gray-600 mb-2">{{ user?.email }}</p>
+
 
     <h3 class="text-xl font-semibold text-gray-700 mb-4">Criteria</h3>
 
@@ -15,14 +16,9 @@
         :key="c.id"
         class="flex justify-between items-center p-3 border rounded-lg shadow-sm"
       >
-        <!-- Criterion name -->
         <p class="text-gray-900 font-medium">{{ c.criterion.name }}</p>
 
-        <!-- Countable criterion -->
-        <div
-          v-if="c.criterion.type === 'countable'"
-          class="flex items-center space-x-2"
-        >
+        <div v-if="c.criterion.type === 'countable'" class="flex items-center space-x-2">
           <span class="text-gray-700 font-bold text-lg">{{ c.count_value ?? 0 }}</span>
           <BaseButton
             class="w-8 h-8 flex items-center justify-center p-0 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xl shadow"
@@ -32,7 +28,6 @@
           </BaseButton>
         </div>
 
-        <!-- Boolean criterion -->
         <div v-else>
           <label class="flex items-center cursor-pointer">
             <input
@@ -46,7 +41,6 @@
       </div>
     </div>
 
-    <!-- Empty state -->
     <p v-else class="text-gray-500 mt-4 text-center">
       No criteria assigned to this user.
     </p>
@@ -56,11 +50,8 @@
 <script>
 import BaseButton from "../BaseComponents/BaseButton.vue";
 import { getUser } from "../../api/users";
-import {
-  getUserCriterias,
-  incrementUserCriterion,
-  setBooleanValue,
-} from "../../api/criterias";
+import { getUserCriterias, incrementUserCriterion, setBooleanValue } from "../../api/criterias";
+import { getSession } from "../../api/sessions"; // <--- Session-API importieren
 
 export default {
   components: { BaseButton },
@@ -68,6 +59,7 @@ export default {
     return {
       user: null,
       criteria: [],
+      session: null, // <--- Session speichern
     };
   },
   methods: {
@@ -75,18 +67,17 @@ export default {
       const id = this.$route.params.id;
       const sessionId = this.$route.query.session;
 
-      const [userRes, critRes] = await Promise.all([
+      const [userRes, critRes, sessionRes] = await Promise.all([
         getUser(id),
         getUserCriterias(id, sessionId),
+        getSession(sessionId),
       ]);
 
       this.user = userRes.data;
+      this.session = sessionRes.data;
 
-      // sort alphabetically by criterion name (case-insensitive)
       this.criteria = critRes.data.sort((a, b) =>
-        a.criterion.name.localeCompare(b.criterion.name, "en", {
-          sensitivity: "base",
-        })
+        a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
       );
     },
     async increment(criterionId) {
