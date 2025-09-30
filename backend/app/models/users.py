@@ -1,4 +1,12 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    ForeignKey,
+    DateTime,
+    func
+)
 from ..db import Base
 from datetime import datetime, timezone
 from sqlalchemy.orm import relationship
@@ -20,5 +28,33 @@ class User(Base):
         onupdate=lambda: datetime.now(timezone.utc).isoformat()
     )
 
+    # Relationships
     criteria = relationship("UserCriterion", back_populates="user")
+
+# --- Association table between User and Criterion ---
+class UserCriterion(Base):
+    __tablename__ = "user_criteria"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    criterion_id = Column(Integer, ForeignKey("criteria.id"), nullable=False)
+    phase_id = Column(Integer, ForeignKey("phases.id"), nullable=True)
+
+    # For COUNTABLE type: store an integer
+    count_value = Column(Integer, nullable=False, default=0)
+
+    # For BOOLEAN type: store whether the criterion is fulfilled
+    is_fulfilled = Column(Boolean, nullable=False, default=False)
+
+    # For TEXT type
+    text_value = Column(String, nullable=True)
+    
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="criteria")
+    criterion = relationship("Criterion", back_populates="users")
+    phase = relationship("Phase", back_populates="user_criteria")
 
