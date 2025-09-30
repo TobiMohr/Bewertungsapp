@@ -27,6 +27,18 @@ class CriterionRead(CriterionBase):
     class Config:
         orm_mode = True
 
+class CriterionWithWeightRead(BaseModel):
+    criterion: CriterionRead
+    weight: int
+
+    class Config:
+        orm_mode = True
+
+
+class CriterionWithWeightCreate(BaseModel):
+    id: int
+    weight: int = 1
+
 
 # ---------- UserCriterion ----------
 class UserCriterionBase(BaseModel):
