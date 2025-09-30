@@ -92,11 +92,17 @@ def get_sessions(db: Session = Depends(get_db)):
 
 
 @router.get("/{session_id}", response_model=SessionRead)
-def get_session(session_id: int, session: Session = Depends(get_db)):
-    db_session = session.query(SessionModel).filter(SessionModel.id == session_id).first()
+def get_session(session_id: int, db: Session = Depends(get_db)):
+    db_session = db.query(SessionModel).options(
+        joinedload(SessionModel.phases)
+        .joinedload(Phase.phase_criteria_assoc)
+        .joinedload(PhaseCriterion.criterion)
+    ).filter(SessionModel.id == session_id).first()
+
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
-    return db_session
+
+    return session_to_dict(db_session)
 
 
 @router.put("/{session_id}", response_model=SessionRead)
@@ -117,29 +123,38 @@ def update_session(session_id: int, payload: SessionUpdate, db: Session = Depend
     if not default_phase:
         raise HTTPException(status_code=400, detail="Default phase missing")
 
-    if payload.criteria is not None:
-        # Remove old criteria
-        db.query(PhaseCriterion).filter_by(phase_id=default_phase.id).delete()
-        db.commit()
+    # Extract new criteria from payload.phases[0].criteria
+    new_criteria = []
+    if payload.phases and len(payload.phases) > 0:
+        phase_data = payload.phases[0]
+        if hasattr(phase_data, "criteria") and phase_data.criteria:
+            new_criteria = phase_data.criteria
 
-        # Add new criteria
-        for crit in payload.criteria:
+    # Merge new criteria onto existing ones without deleting
+    existing_crit_ids = [assoc.criterion_id for assoc in default_phase.phase_criteria_assoc]
+    for crit in new_criteria:
+        if crit.id not in existing_crit_ids:
             db_crit = db.query(Criterion).filter_by(id=crit.id).first()
-            if not db_crit:
-                continue
-            assoc = PhaseCriterion(
-                phase_id=default_phase.id,
-                criterion_id=db_crit.id,
-                weight=crit.weight
-            )
-            db.add(assoc)
-        db.commit()
+            if db_crit:
+                assoc = PhaseCriterion(
+                    phase_id=default_phase.id,
+                    criterion_id=db_crit.id,
+                    weight=crit.weight
+                )
+                db.add(assoc)
+    db.commit()
 
-        # Update UserCriterion entries
-        create_user_criteria_for_phase(db, default_phase)
+    # Update UserCriterion entries
+    create_user_criteria_for_phase(db, default_phase)
 
-    db.refresh(db_session)
-    return db_session
+    # Reload the session with joinedload so criteria come back filled
+    db_session = db.query(SessionModel).options(
+        joinedload(SessionModel.phases)
+        .joinedload(Phase.phase_criteria_assoc)
+        .joinedload(PhaseCriterion.criterion)
+    ).filter(SessionModel.id == session_id).first()
+
+    return session_to_dict(db_session)
 
 
 @router.delete("/{session_id}", response_model=dict)

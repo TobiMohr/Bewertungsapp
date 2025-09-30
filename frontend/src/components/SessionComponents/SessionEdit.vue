@@ -120,15 +120,21 @@ export default {
 
       const payloadCriteria = Object.entries(this.checkedCriteria)
         .filter(([, checked]) => checked)
-        .map(([idStr]) => {
-          const weight = this.criteriaWeights[idStr] ?? 0;
-          return { id: Number(idStr), weight };
-        });
+        .map(([idStr]) => ({
+          id: Number(idStr),
+          weight: this.criteriaWeights[idStr] ?? 0,
+        }));
 
       try {
         await updateSession(id, {
           ...this.form,
-          criteria: payloadCriteria,
+          phases: [
+            {
+              title: "Default Phase",
+              order: 1,
+              criteria: payloadCriteria,
+            },
+          ],
         });
         this.$router.push("/sessions");
       } catch (err) {
@@ -153,14 +159,24 @@ export default {
       this.form.title = s.title;
       this.form.description = s.description;
 
-      // backend returns session_criteria_assoc: [{ criterion: {...}, weight: N }, ...]
-      if (Array.isArray(s.session_criteria_assoc)) {
-        s.session_criteria_assoc.forEach((assoc) => {
-          const cid = assoc.criterion.id;
-          this.sessionCriteriaIds.push(cid);
-          this.checkedCriteria[String(cid)] = true;
-          this.criteriaWeights[String(cid)] = assoc.weight ?? 0;
-        });
+      // backend returns session.phases[0].criteria
+      if (Array.isArray(s.phases) && s.phases.length > 0) {
+        const phase = s.phases[0];
+        if (Array.isArray(phase.criteria)) {
+          phase.criteria.forEach((c) => {
+            console.log("Criterion from backend:", c);
+
+            const cid = c.criterion?.id;
+            if (!cid) {
+              console.warn("Skipping malformed criterion:", c);
+              return;
+            }
+
+            this.sessionCriteriaIds.push(cid);
+            this.checkedCriteria[String(cid)] = true;
+            this.criteriaWeights[String(cid)] = c.weight ?? 0;
+          });
+        }
       }
 
       // defensive: ensure all session criteria are initialized
@@ -179,3 +195,4 @@ export default {
   },
 };
 </script>
+

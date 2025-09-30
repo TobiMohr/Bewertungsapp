@@ -16,7 +16,7 @@ class SessionCreate(SessionBase):
 
 # --- Session Update ---
 class SessionUpdate(SessionBase):
-    criteria: Optional[List[CriterionWithWeightCreate]] = []
+    phases: Optional[List[PhaseCreate]] = []
 
 # --- Session Read ---
 class SessionRead(SessionBase):
