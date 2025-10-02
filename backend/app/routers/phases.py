@@ -56,9 +56,8 @@ def update_phase(phase_id: int, payload: PhaseUpdate, db: Session = Depends(get_
     if not phase:
         raise HTTPException(status_code=404, detail="Phase not found")
 
-    # Update title/order
     phase.title = payload.title
-    phase.order = payload.order
+    phase.description = payload.description
 
     # Extract new criteria
     new_criteria = payload.criteria or []
@@ -95,7 +94,7 @@ def phase_to_dict(phase: Phase) -> dict:
     return {
         "id": phase.id,
         "title": phase.title,
-        "order": phase.order,
+        "description": phase.description,
         "created_at": phase.created_at,
         "updated_at": phase.updated_at,
         "criteria": [

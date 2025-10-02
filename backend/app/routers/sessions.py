@@ -52,7 +52,7 @@ def create_session(session_data: SessionCreate, db: Session = Depends(get_db)):
     for phase_data in session_data.phases:
         phase = Phase(
             title=phase_data.title,
-            order=phase_data.order,
+            description=phase_data.description,
             session_id=session.id
         )
         db.add(phase)
@@ -111,45 +111,13 @@ def update_session(session_id: int, payload: SessionUpdate, db: Session = Depend
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Update session fields
     db_session.title = payload.title
     db_session.description = payload.description
 
-    # Find default phase
-    default_phase = db.query(Phase).filter(
-        Phase.session_id == db_session.id,
-        Phase.order == 1
-    ).first()
-    if not default_phase:
-        raise HTTPException(status_code=400, detail="Default phase missing")
-
-    # Extract new criteria from payload.phases[0].criteria
-    new_criteria = []
-    if payload.phases and len(payload.phases) > 0:
-        phase_data = payload.phases[0]
-        if hasattr(phase_data, "criteria") and phase_data.criteria:
-            new_criteria = phase_data.criteria
-
-    # Merge new criteria onto existing ones without deleting
-    existing_assoc = {assoc.criterion_id: assoc for assoc in default_phase.phase_criteria_assoc}
-    for crit in new_criteria:
-        if crit.id in existing_assoc:
-            existing_assoc[crit.id].weight = crit.weight
-        else:
-            db_crit = db.query(Criterion).filter_by(id=crit.id).first()
-            if db_crit:
-                assoc = PhaseCriterion(
-                    phase_id=default_phase.id,
-                    criterion_id=db_crit.id,
-                    weight=crit.weight
-                )
-                db.add(assoc)
     db.commit()
+    db.refresh(db_session)
 
-    # Update UserCriterion entries
-    create_user_criteria_for_phase(db, default_phase)
-
-    # Reload the session with joinedload so criteria come back filled
+    # Reload session with phases & criteria for response
     db_session = db.query(SessionModel).options(
         joinedload(SessionModel.phases)
         .joinedload(Phase.phase_criteria_assoc)
@@ -180,7 +148,7 @@ def session_to_dict(session: SessionModel) -> dict:
             {
                 "id": phase.id,
                 "title": phase.title,
-                "order": phase.order,
+                "description": phase.description,
                 "created_at": phase.created_at,
                 "updated_at": phase.updated_at,
                 "criteria": [

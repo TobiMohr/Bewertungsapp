@@ -7,7 +7,7 @@ from .criterias import CriterionWithWeightRead, CriterionWithWeightCreate
 # --- Phase Base ---
 class PhaseBase(BaseModel):
     title: str
-    order: Optional[int] = None
+    description: Optional[str] = None
 
 # --- Phase creation ---
 class PhaseCreate(PhaseBase):

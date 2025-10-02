@@ -14,7 +14,7 @@ class Phase(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False, default="Gesamtsession")
-    order = Column(Integer, nullable=True)
+    description = Column(String, nullable=True)
     session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
