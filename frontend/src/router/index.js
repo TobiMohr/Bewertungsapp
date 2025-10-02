@@ -20,6 +20,7 @@ import SessionEdit from "@/components/SessionComponents/SessionEdit.vue";
 
 // Phases
 import PhaseDetail from "@/components/PhaseComponents/PhaseDetail.vue";
+import PhaseForm from "@/components/PhaseComponents/PhaseForm.vue";
 
 const routes = [
   { path: "/", redirect: "/login" },
@@ -83,6 +84,11 @@ const routes = [
     path: "/phases/:id",
     component: PhaseDetail,
     props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/phases/create",
+    component: PhaseForm,
     meta: { requiresAuth: true },
   },
 ];

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from .. import db
-from ..models import Phase, PhaseCriterion, Criterion, User, UserCriterion
-from ..schemas import PhaseUpdate, PhaseRead
+from ..models import Phase, PhaseCriterion, Criterion, User, UserCriterion, Session as SessionModel
+from ..schemas import PhaseUpdate, PhaseRead, PhaseCreate
 
 router = APIRouter(prefix="/phases", tags=["phases"])
 
@@ -43,6 +43,48 @@ def get_phase(phase_id: int, db: Session = Depends(get_db)):
 
     if not phase:
         raise HTTPException(status_code=404, detail="Phase not found")
+
+    return phase_to_dict(phase)
+
+@router.post("/", response_model=PhaseRead)
+def create_phase(
+    payload: PhaseCreate,
+    db: Session = Depends(get_db)
+):
+    # Check that session exists
+    session_exists = db.query(SessionModel).filter(SessionModel.id == payload.session_id).first()
+    if not session_exists:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Create the phase
+    phase = Phase(
+        session_id=payload.session_id,
+        title=payload.title,
+        description=payload.description,
+    )
+    db.add(phase)
+    db.commit()
+    db.refresh(phase)
+
+    # Add criteria if any
+    for crit in payload.criteria or []:
+        db_crit = db.query(Criterion).filter_by(id=crit.id).first()
+        if db_crit:
+            assoc = PhaseCriterion(
+                phase_id=phase.id,
+                criterion_id=db_crit.id,
+                weight=crit.weight
+            )
+            db.add(assoc)
+    db.commit()
+
+    # Create UserCriterion entries
+    create_user_criteria_for_phase(db, phase)
+
+    # Reload with relations
+    phase = db.query(Phase).options(
+        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion)
+    ).filter(Phase.id == phase.id).first()
 
     return phase_to_dict(phase)
 

@@ -39,9 +39,17 @@
       </div>
     </form>
 
-    <!-- Phases list -->
+    <!-- Phases list with "Add Phase" button -->
     <div class="mt-8">
-      <h3 class="text-lg font-semibold text-gray-800 mb-4">Phases</h3>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-800">Phases</h3>
+        <BaseButton
+          @click="$router.push({ path: '/phases/create', query: { sessionId: $route.params.id } })"
+        >
+          Add Phase
+        </BaseButton>
+      </div>
+
       <ul class="divide-y divide-gray-200">
         <li
           v-for="phase in phases"
@@ -50,7 +58,7 @@
           @click="$router.push(`/phases/${phase.id}`)"
         >
           <div class="flex items-center justify-between">
-            <span class="font-medium text-gray-700">{{ phase.title }}</span>
+            <span class="font-medium text-gray-700 hover:underline">{{ phase.title }}</span>
             <p class="text-gray-500 text-sm">{{ phase.description }}</p>
           </div>
         </li>
