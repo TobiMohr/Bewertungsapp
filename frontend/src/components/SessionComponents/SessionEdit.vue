@@ -51,7 +51,7 @@
         >
           <div class="flex items-center justify-between">
             <span class="font-medium text-gray-700">{{ phase.title }}</span>
-            <span class="text-sm text-gray-500">Order: {{ phase.order }}</span>
+            <p class="text-gray-500 text-sm">{{ phase.description }}</p>
           </div>
         </li>
       </ul>

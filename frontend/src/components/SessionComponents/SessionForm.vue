@@ -105,7 +105,7 @@ export default {
           phases: [
             {
               title: "Default Phase",
-              order: 1,
+              description: "Default Phase which is created for the session",
               criteria: Object.entries(this.checkedCriteria)
                 .filter(([, checked]) => checked)
                 .map(([id]) => ({

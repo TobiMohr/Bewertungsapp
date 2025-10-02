@@ -14,14 +14,14 @@
         />
       </div>
 
+      <!-- Description -->
       <div>
-        <label class="block mb-2 font-semibold">Order</label>
-        <input
-          v-model.number="form.order"
-          type="number"
+        <label class="block mb-2 font-semibold">Description</label>
+        <textarea
+          v-model="form.description"
           class="w-full border border-gray-300 rounded-lg p-2"
-          required
-        />
+          rows="4"
+        ></textarea>
       </div>
 
       <!-- Criteria selection -->
@@ -99,12 +99,12 @@ export default {
       phase: {
         id: null,
         title: "",
-        order: null,
+        description: "",
         criteria: [],
       },
       form: {
         title: "",
-        order: null,
+        description: "",
       },
       allCriteria: [],
       checkedCriteria: {},
@@ -126,7 +126,7 @@ export default {
       try {
         await updatePhase(phaseId, {
           title: this.form.title,
-          order: this.form.order,
+          description: this.form.description,
           criteria: payloadCriteria,
         });
         this.$router.push("/sessions");
@@ -154,7 +154,7 @@ export default {
 
       this.phase = p;
       this.form.title = p.title;
-      this.form.order = p.order;
+      this.form.description = p.description;
 
       if (Array.isArray(p.criteria)) {
         p.criteria.forEach(c => {
