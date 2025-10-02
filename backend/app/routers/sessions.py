@@ -131,9 +131,11 @@ def update_session(session_id: int, payload: SessionUpdate, db: Session = Depend
             new_criteria = phase_data.criteria
 
     # Merge new criteria onto existing ones without deleting
-    existing_crit_ids = [assoc.criterion_id for assoc in default_phase.phase_criteria_assoc]
+    existing_assoc = {assoc.criterion_id: assoc for assoc in default_phase.phase_criteria_assoc}
     for crit in new_criteria:
-        if crit.id not in existing_crit_ids:
+        if crit.id in existing_assoc:
+            existing_assoc[crit.id].weight = crit.weight
+        else:
             db_crit = db.query(Criterion).filter_by(id=crit.id).first()
             if db_crit:
                 assoc = PhaseCriterion(
