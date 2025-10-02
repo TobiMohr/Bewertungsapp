@@ -24,58 +24,6 @@
         ></textarea>
       </div>
 
-      <!-- Criteria selection -->
-      <div>
-        <h3 class="text-lg font-semibold text-gray-700 mb-4">
-          Select Criteria
-        </h3>
-
-        <p class="text-sm text-gray-500 mb-4">
-          Existing criteria cannot be deselected. You can add new criteria and adjust weights.
-        </p>
-
-        <div class="flex flex-col space-y-3">
-          <div
-            v-for="crit in criteria"
-            :key="crit.id"
-            class="flex items-center justify-between space-x-4"
-          >
-            <!-- Left column: Name + Toggle + Lock -->
-            <div class="flex items-center space-x-2 w-3/4">
-              <span class="text-gray-800 w-40 truncate">{{ crit.name }}</span>
-              
-              <div class="flex items-center space-x-1">
-                <BaseToggle
-                  v-model="checkedCriteria[String(crit.id)]"
-                  :disabled="sessionCriteriaIds.includes(crit.id)"
-                />
-                <LockClosedIcon
-                  v-if="sessionCriteriaIds.includes(crit.id)"
-                  class="h-4 w-4 text-gray-400"
-                />
-              </div>
-            </div>
-
-            <!-- Right column: Weight Input -->
-            <div class="flex items-center space-x-2 w-1/4 justify-end">
-              <label
-                v-if="checkedCriteria[String(crit.id)]"
-                class="text-sm text-gray-600"
-              >
-                Weight
-              </label>
-              <input
-                v-if="checkedCriteria[String(crit.id)]"
-                type="number"
-                min="0"
-                v-model.number="criteriaWeights[String(crit.id)]"
-                class="w-16 border border-gray-300 rounded px-1 py-1 text-center"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Buttons -->
       <div class="flex justify-between pt-4">
         <BaseButton
@@ -90,51 +38,50 @@
         </BaseButton>
       </div>
     </form>
+
+    <!-- Phases list -->
+    <div class="mt-8">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">Phases</h3>
+      <ul class="divide-y divide-gray-200">
+        <li
+          v-for="phase in phases"
+          :key="phase.id"
+          class="py-3 cursor-pointer hover:bg-gray-50 px-2 rounded"
+          @click="$router.push(`/phases/${phase.id}`)"
+        >
+          <div class="flex items-center justify-between">
+            <span class="font-medium text-gray-700">{{ phase.title }}</span>
+            <span class="text-sm text-gray-500">Order: {{ phase.order }}</span>
+          </div>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
 <script>
 import { getSession, updateSession } from "../../api/sessions";
-import { getCriterias } from "../../api/criterias";
 import BaseButton from "../BaseComponents/BaseButton.vue";
-import BaseToggle from "../BaseComponents/BaseToggle.vue";
-import { LockClosedIcon } from '@heroicons/vue/24/solid';
 
 export default {
-  components: { BaseButton, BaseToggle, LockClosedIcon },
+  components: { BaseButton },
   data() {
     return {
       form: {
         title: "",
         description: "",
       },
-      criteria: [],               // All available criteria from /criterias
-      checkedCriteria: {},        // Mapping string(id) -> boolean
-      criteriaWeights: {},        // Mapping string(id) -> number (0 allowed)
-      sessionCriteriaIds: [],     // IDs of criteria that already belong to the session
+      phases: [], // store session phases
     };
   },
   methods: {
     async updateSessionHandler() {
       const id = this.$route.params.id;
 
-      const payloadCriteria = Object.entries(this.checkedCriteria)
-        .filter(([, checked]) => checked)
-        .map(([idStr]) => ({
-          id: Number(idStr),
-          weight: this.criteriaWeights[idStr] ?? 0,
-        }));
-
       try {
         await updateSession(id, {
-          ...this.form,
-          phases: [
-            {
-              title: "Default Phase",
-              order: 1,
-              criteria: payloadCriteria,
-            },
-          ],
+          title: this.form.title,
+          description: this.form.description,
         });
         this.$router.push("/sessions");
       } catch (err) {
@@ -145,54 +92,16 @@ export default {
   },
   async mounted() {
     try {
-      // 1) fetch all available criteria
-      const criteriaRes = await getCriterias();
-      this.criteria = criteriaRes.data;
-
-      // init maps with defaults (keys as strings for v-model)
-      this.checkedCriteria = Object.fromEntries(this.criteria.map(c => [String(c.id), false]));
-      this.criteriaWeights = Object.fromEntries(this.criteria.map(c => [String(c.id), 0]));
-
-      // 2) fetch session
       const sessionRes = await getSession(this.$route.params.id);
       const s = sessionRes.data;
+
       this.form.title = s.title;
       this.form.description = s.description;
-
-      // backend returns session.phases[0].criteria
-      if (Array.isArray(s.phases) && s.phases.length > 0) {
-        const phase = s.phases[0];
-        if (Array.isArray(phase.criteria)) {
-          phase.criteria.forEach((c) => {
-            console.log("Criterion from backend:", c);
-
-            const cid = c.criterion?.id;
-            if (!cid) {
-              console.warn("Skipping malformed criterion:", c);
-              return;
-            }
-
-            this.sessionCriteriaIds.push(cid);
-            this.checkedCriteria[String(cid)] = true;
-            this.criteriaWeights[String(cid)] = c.weight ?? 0;
-          });
-        }
-      }
-
-      // defensive: ensure all session criteria are initialized
-      this.sessionCriteriaIds.forEach(cid => {
-        if (!(String(cid) in this.checkedCriteria)) {
-          this.$set(this.checkedCriteria, String(cid), true);
-        }
-        if (!(String(cid) in this.criteriaWeights)) {
-          this.$set(this.criteriaWeights, String(cid), 0);
-        }
-      });
+      this.phases = s.phases || [];
     } catch (err) {
-      console.error("Failed to fetch session or criteria:", err);
+      console.error("Failed to fetch session:", err);
       alert("Failed to load session data");
     }
   },
 };
 </script>
-
