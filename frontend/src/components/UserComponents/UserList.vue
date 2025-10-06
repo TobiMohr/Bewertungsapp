@@ -106,40 +106,45 @@ export default {
   },
   methods: {
     async fetchSessions() {
-      const res = await getSessions();
-      this.sessions = res.data;
-
-      // Select first phase by default
-      if (this.sessions.length && this.sessions[0].phases.length) {
-        this.selectedPhaseId = this.sessions[0].phases[0].id;
-        this.fetchUsersForPhase();
+      try {
+        const res = await getSessions();
+        this.sessions = res.data;
+      } catch (err) {
+        console.error("Failed to load sessions:", err);
       }
     },
-    async fetchUsersForPhase() {
-      if (!this.selectedPhaseId) return;
 
-      const res = await getUsers({ phaseId: this.selectedPhaseId });
-      this.users = res.data.sort((a, b) => {
-        const last = a.last_name.localeCompare(b.last_name, "en", { sensitivity: "base" });
-        if (last !== 0) return last;
-        return a.first_name.localeCompare(b.first_name, "en", { sensitivity: "base" });
-      });
+    async fetchUsers() {
+      try {
+        const res = await getUsers();
+        this.users = res.data.sort((a, b) => {
+          const last = a.last_name.localeCompare(b.last_name, "en", { sensitivity: "base" });
+          if (last !== 0) return last;
+          return a.first_name.localeCompare(b.first_name, "en", { sensitivity: "base" });
+        });
+      } catch (err) {
+        console.error("Failed to load users:", err);
+      }
     },
+
     confirmDelete(userId) {
       this.userToDelete = userId;
       this.showDeleteModal = true;
     },
+
     async deleteConfirmed() {
       if (this.userToDelete) {
         await deleteUser(this.userToDelete);
         this.showDeleteModal = false;
         this.userToDelete = null;
-        this.fetchUsersForPhase();
+        this.fetchUsers();
       }
     },
   },
+
   async mounted() {
     await this.fetchSessions();
+    await this.fetchUsers();
   },
 };
 </script>
