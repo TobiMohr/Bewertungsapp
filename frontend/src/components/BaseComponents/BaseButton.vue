@@ -24,8 +24,10 @@ export default {
           return 'bg-yellow-400 hover:bg-yellow-500'
         case 'delete':
           return 'bg-red-600 hover:bg-red-700';
+        case 'copy':
+          return 'bg-cyan-500 hover:bg-cyan-600'
         default:
-          return 'bg-green-600 hover:bg-green-700';
+          return 'bg-emerald-500 hover:bg-emerald-600';
       }
     },
   },

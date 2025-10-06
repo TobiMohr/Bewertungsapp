@@ -6,7 +6,8 @@
 
       <!-- ✅ Copy Phase Button -->
       <BaseButton
-        class="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white"
+        class="flex items-center"
+        variant="copy"
         @click="openCopyDialog"
       >
         <DocumentDuplicateIcon class="h-5 w-5" />
