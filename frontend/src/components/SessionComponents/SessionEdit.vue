@@ -1,43 +1,31 @@
 <template>
   <div class="max-w-2xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
-    <h2 class="text-2xl font-bold text-gray-800 mb-6">Edit Session</h2>
+    
+    <!-- Header with Edit Session button next to the headline -->
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold text-gray-800">Edit Session</h2>
+      <BaseButton
+        class="p-2 rounded-full"
+        variant="edit"
+        tooltip="Edit this Session"
+        @click="openEditModal"
+      >
+        <PencilIcon class="h-5 w-5" />
+      </BaseButton>
+    </div>
 
-    <form @submit.prevent="updateSessionHandler" class="space-y-6">
-      <!-- Title -->
+    <!-- Display session info -->
+    <div class="space-y-4">
       <div>
-        <label class="block mb-2 font-semibold">Title</label>
-        <input
-          v-model="form.title"
-          type="text"
-          class="w-full border border-gray-300 rounded-lg p-2"
-          required
-        />
+        <label class="block font-bold text-gray-600">Title:</label>
+        <p class="text-gray-800">{{ form.title }}</p>
       </div>
 
-      <!-- Description -->
       <div>
-        <label class="block mb-2 font-semibold">Description</label>
-        <textarea
-          v-model="form.description"
-          class="w-full border border-gray-300 rounded-lg p-2"
-          rows="4"
-        ></textarea>
+        <label class="block font-bold text-gray-600">Description:</label>
+        <p class="text-gray-800">{{ form.description || "—" }}</p>
       </div>
-
-      <!-- Buttons -->
-      <div class="flex justify-between pt-4">
-        <BaseButton
-          type="button"
-          variant="cancel"
-          @click="$router.push('/sessions')"
-        >
-          Cancel
-        </BaseButton>
-        <BaseButton type="submit">
-          Update Session
-        </BaseButton>
-      </div>
-    </form>
+    </div>
 
     <!-- Phases list with "Add Phase" button -->
     <div class="mt-8">
@@ -64,34 +52,75 @@
         </li>
       </ul>
     </div>
+
+    <!-- Edit Session Modal -->
+    <BaseDialog v-if="showEditModal" @close="showEditModal = false">
+      <template #title>Edit Session</template>
+
+      <template #content>
+        <div class="space-y-4">
+          <div>
+            <label class="block mb-1 font-semibold">Title</label>
+            <input
+              v-model="editForm.title"
+              type="text"
+              class="w-full border border-gray-300 rounded-lg p-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block mb-1 font-semibold">Description</label>
+            <textarea
+              v-model="editForm.description"
+              class="w-full border border-gray-300 rounded-lg p-2"
+              rows="4"
+            ></textarea>
+          </div>
+        </div>
+      </template>
+
+      <template #actions>
+        <BaseButton variant="cancel" @click="showEditModal = false">Cancel</BaseButton>
+        <BaseButton @click="updateSessionHandler">Update</BaseButton>
+      </template>
+    </BaseDialog>
   </div>
 </template>
 
 <script>
 import { getSession, updateSession } from "../../api/sessions";
 import BaseButton from "../BaseComponents/BaseButton.vue";
+import BaseDialog from "../BaseComponents/BaseDialog.vue";
+import { PencilIcon } from "@heroicons/vue/24/solid";
 
 export default {
-  components: { BaseButton },
+  components: { BaseButton, BaseDialog, PencilIcon },
   data() {
     return {
-      form: {
-        title: "",
-        description: "",
-      },
-      phases: [], // store session phases
+      form: { title: "", description: "" }, // displayed values
+      editForm: { title: "", description: "" }, // editable values
+      phases: [],
+      showEditModal: false,
     };
   },
   methods: {
+    openEditModal() {
+      this.editForm.title = this.form.title;
+      this.editForm.description = this.form.description;
+      this.showEditModal = true;
+    },
     async updateSessionHandler() {
       const id = this.$route.params.id;
-
       try {
         await updateSession(id, {
-          title: this.form.title,
-          description: this.form.description,
+          title: this.editForm.title,
+          description: this.editForm.description,
         });
-        this.$router.push("/sessions");
+        // Update the displayed values
+        this.form.title = this.editForm.title;
+        this.form.description = this.editForm.description;
+        this.showEditModal = false;
       } catch (err) {
         console.error("Failed to update session:", err);
         alert(err.response?.data?.detail || "Failed to update session");

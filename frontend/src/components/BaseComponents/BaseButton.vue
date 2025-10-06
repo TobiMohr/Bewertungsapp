@@ -5,6 +5,7 @@
       'px-4 py-2 rounded-md text-white font-medium transition disabled:opacity-50',
       variantClasses
     ]"
+    :title="tooltip"
   >
     <slot />
   </button>
@@ -13,7 +14,8 @@
 <script>
 export default {
   props: {
-    variant: { type: String, default: 'primary' } // primary, gray, danger
+    variant: { type: String, default: 'primary' },
+    tooltip: { type: String, default: ''}
   },
   computed: {
     variantClasses() {

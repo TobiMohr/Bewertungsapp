@@ -53,7 +53,7 @@
             @click="$router.push(`/users/edit/${user.id}`)"
             class="p-2 rounded-full"
             variant="edit"
-            title="Edit user"
+            tooltip="Edit user"
           >
             <PencilIcon class="h-5 w-5" />
           </BaseButton>
@@ -62,7 +62,7 @@
             @click="confirmDelete(user.id)"
             class="p-2 rounded-full"
             variant="delete"
-            title="Delete user"
+            tooltip="Delete user"
           >
             <TrashIcon class="h-5 w-5" />
           </BaseButton>
