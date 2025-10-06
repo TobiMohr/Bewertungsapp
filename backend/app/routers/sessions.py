@@ -149,6 +149,7 @@ def session_to_dict(session: SessionModel) -> dict:
                 "id": phase.id,
                 "title": phase.title,
                 "description": phase.description,
+                "session_id": phase.session_id,
                 "created_at": phase.created_at,
                 "updated_at": phase.updated_at,
                 "criteria": [

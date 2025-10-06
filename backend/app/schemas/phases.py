@@ -23,6 +23,7 @@ class PhaseRead(PhaseBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    session_id: Optional[int]
     criteria: List[CriterionWithWeightRead] = []
 
     class Config:

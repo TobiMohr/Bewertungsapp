@@ -131,12 +131,55 @@ def update_phase(phase_id: int, payload: PhaseUpdate, db: Session = Depends(get_
 
     return phase_to_dict(phase)
 
+@router.post("/{phase_id}/copy", response_model=PhaseRead)
+def copy_phase(phase_id: int, payload: dict, db: Session = Depends(get_db)):
+    """Duplicate a phase (title + metadata + criteria)."""
+    phase = db.query(Phase).options(
+        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion)
+    ).filter(Phase.id == phase_id).first()
+
+    if not phase:
+        raise HTTPException(status_code=404, detail="Phase not found")
+
+    new_title = payload.get("title")
+    if not new_title:
+        raise HTTPException(status_code=400, detail="Title is required for the copied phase")
+
+    copied_phase = Phase(
+        session_id=phase.session_id,
+        title=new_title,
+        description=phase.description
+    )
+    db.add(copied_phase)
+    db.commit()
+    db.refresh(copied_phase)
+
+    for assoc in phase.phase_criteria_assoc:
+        new_assoc = PhaseCriterion(
+            phase_id=copied_phase.id,
+            criterion_id=assoc.criterion_id,
+            weight=assoc.weight
+        )
+        db.add(new_assoc)
+
+    db.commit()
+
+    create_user_criteria_for_phase(db, copied_phase)
+
+    copied_phase = db.query(Phase).options(
+        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion)
+    ).filter(Phase.id == copied_phase.id).first()
+
+    return phase_to_dict(copied_phase)
+
+
 
 def phase_to_dict(phase: Phase) -> dict:
     return {
         "id": phase.id,
         "title": phase.title,
         "description": phase.description,
+        "session_id": phase.session_id,
         "created_at": phase.created_at,
         "updated_at": phase.updated_at,
         "criteria": [
