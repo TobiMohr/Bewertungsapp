@@ -11,7 +11,7 @@ class PhaseBase(BaseModel):
 
 # --- Phase creation ---
 class PhaseCreate(PhaseBase):
-    session_id: int
+    session_id: Optional[int] = None
     criteria: Optional[List[CriterionWithWeightCreate]] = []
 
 # --- Phase update ---
