@@ -59,6 +59,15 @@
           </BaseButton>
 
           <BaseButton
+            @click="$router.push(`/users/${user.id}/evaluation`)"
+            class="p-2 rounded-full"
+            variant="view"
+            tooltip="View Evaluation for User"
+          >
+            <ChartBarIcon class="h-5 w-5" />
+          </BaseButton>
+
+          <BaseButton
             @click="confirmDelete(user.id)"
             class="p-2 rounded-full"
             variant="delete"
@@ -89,12 +98,12 @@
 <script>
 import { getUsers, deleteUser } from "../../api/users";
 import { getSessions } from "../../api/sessions";
-import { PencilIcon, TrashIcon } from "@heroicons/vue/24/solid";
+import { PencilIcon, TrashIcon, ChartBarIcon  } from "@heroicons/vue/24/solid";
 import BaseButton from "../BaseComponents/BaseButton.vue";
 import ConfirmModal from "../BaseComponents/ConfirmModal.vue";
 
 export default {
-  components: { PencilIcon, TrashIcon, BaseButton, ConfirmModal },
+  components: { PencilIcon, ChartBarIcon , TrashIcon, BaseButton, ConfirmModal },
   data() {
     return {
       users: [],

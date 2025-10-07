@@ -25,7 +25,7 @@
     </ul>
 
     <p v-if="criterias.length === 0" class="text-gray-500 mt-4">
-      No criterias created yet.
+      No criteria created yet.
     </p>
   </div>
 </template>

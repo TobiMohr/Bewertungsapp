@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from .. import db, schemas, security, models
 
 
@@ -62,6 +62,51 @@ def get_user(user_id: int, session: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+@router.get("/{user_id}/evaluation")
+def get_user_evaluation(user_id: int, db: Session = Depends(get_db)):
+    sessions = (
+        db.query(models.Session)
+        .options(
+            joinedload(models.Session.phases)
+            .joinedload(models.Phase.user_criteria)
+            .joinedload(models.UserCriterion.criterion)
+        )
+        .all()
+    )
+
+    return [
+        {
+            "id": s.id,
+            "title": s.title,
+            "description": s.description,
+            "phases": [
+                {
+                    "id": p.id,
+                    "title": p.title,
+                    "description": p.description,
+                    "userCriteria": [
+                        {
+                            "id": uc.id,
+                            "count_value": uc.count_value,
+                            "is_fulfilled": uc.is_fulfilled,
+                            "text_value": uc.text_value,
+                            "criterion": {
+                                "id": uc.criterion.id,
+                                "name": uc.criterion.name,
+                                "type": uc.criterion.type.value,
+                            },
+                        }
+                        for uc in p.user_criteria
+                        if uc.user_id == user_id
+                    ],
+                }
+                for p in s.phases
+            ],
+        }
+        for s in sessions
+    ]
+
 
 # Update a user by ID
 @router.put("/{user_id}", response_model=schemas.UserRead)

@@ -8,6 +8,7 @@ import LoginForm from "../components/AuthComponents/LoginForm.vue";
 import UserList from "../components/UserComponents/UserList.vue";
 import UserForm from "../components/UserComponents/UserForm.vue";
 import UserDetail from "../components/UserComponents/UserDetail.vue";
+import UserEvaluation from "@/components/UserComponents/UserEvaluation.vue";
 
 // Criterias
 import CriteriaList from "@/components/CriteriaComponents/CriteriaList.vue";
@@ -47,6 +48,12 @@ const routes = [
   {
     path: "/users/:id",
     component: UserDetail,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/users/:id/evaluation",
+    component: UserEvaluation,
+    props: true,
     meta: { requiresAuth: true },
   },
 
