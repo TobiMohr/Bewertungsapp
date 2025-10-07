@@ -2,10 +2,9 @@
   <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
     <!-- Header -->
     <h2 class="text-2xl font-bold text-gray-800 mb-2">
-      {{ session?.title }} von {{ user?.first_name }} {{ user?.last_name }}
+      {{ phase?.title }} von {{ user?.first_name }} {{ user?.last_name }}
     </h2>
     <p class="text-gray-600 mb-2">{{ user?.email }}</p>
-
 
     <h3 class="text-xl font-semibold text-gray-700 mb-4">Criteria</h3>
 
@@ -21,9 +20,7 @@
         <!-- Countable criterion -->
         <div v-if="c.criterion.type === 'countable'" class="flex items-center space-x-2">
           <span class="text-gray-700 font-bold text-lg">{{ c.count_value ?? 0 }}</span>
-          <BaseButton
-            @click="increment(c.criterion_id)"
-          >
+          <BaseButton @click="increment(c.criterion_id)">
             <PlusIcon class="h-5 w-5" />
           </BaseButton>
         </div>
@@ -51,41 +48,29 @@
 
         <!-- Modal -->
         <transition name="fade">
-        <div
-          v-if="showTextModal"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-        >
-          <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">
-              Text für {{ activeCriterion?.criterion.name }}
-            </h3>
+          <div
+            v-if="showTextModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          >
+            <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                Text für {{ activeCriterion?.criterion.name }}
+              </h3>
 
-            <textarea
-              v-model="textDraft"
-              class="w-full border rounded-md p-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              rows="4"
-              placeholder="Enter text..."
-            ></textarea>
+              <textarea
+                v-model="textDraft"
+                class="w-full border rounded-md p-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                rows="4"
+                placeholder="Enter text..."
+              ></textarea>
 
-            <div class="flex justify-between mt-6">
-              <!-- Cancel left -->
-              <BaseButton
-                variant="cancel"
-                @click="cancelText"
-              >
-                Cancel
-              </BaseButton>
-
-              <!-- Save right -->
-              <BaseButton
-                @click="saveText"
-              >
-                Save
-              </BaseButton>
+              <div class="flex justify-between mt-6">
+                <BaseButton variant="cancel" @click="cancelText">Cancel</BaseButton>
+                <BaseButton @click="saveText">Save</BaseButton>
+              </div>
             </div>
           </div>
-        </div>
-      </transition>
+        </transition>
       </div>
     </div>
 
@@ -98,7 +83,7 @@
 <script>
 import BaseButton from "../BaseComponents/BaseButton.vue";
 import { getUser } from "../../api/users";
-import { getSession } from "../../api/sessions";
+import { getPhase } from "../../api/phases";
 import { DocumentTextIcon , PlusIcon } from "@heroicons/vue/24/solid";
 import {
   getUserCriterias,
@@ -108,7 +93,7 @@ import {
 } from "../../api/criterias";
 
 export default {
-  components: { BaseButton, DocumentTextIcon , PlusIcon },
+  components: { BaseButton, DocumentTextIcon, PlusIcon },
   data() {
     return {
       user: null,
@@ -116,37 +101,39 @@ export default {
       showTextModal: false,
       activeCriterion: null,
       textDraft: "",
-      session: null,
+      phase: null,
     };
   },
   methods: {
     async fetchData() {
-      const id = this.$route.params.id;
-      const sessionId = this.$route.query.session;
+      const userId = this.$route.params.id;
+      const phaseId = this.$route.query.phase; // ← use phase_id instead of session_id
 
-      const [userRes, critRes, sessionRes] = await Promise.all([
-        getUser(id),
-        getUserCriterias(id, sessionId),
-        getSession(sessionId),
+      if (!phaseId) return;
+
+      const [userRes, critRes, phaseRes] = await Promise.all([
+        getUser(userId),
+        getUserCriterias(userId, phaseId),
+        getPhase(phaseId),
       ]);
 
       this.user = userRes.data;
-      this.session = sessionRes.data;
+      this.phase = phaseRes.data;
 
       this.criteria = critRes.data.sort((a, b) =>
         a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
       );
     },
     async increment(criterionId) {
-      const id = this.$route.params.id;
-      const sessionId = this.$route.query.session;
-      await incrementUserCriterion(criterionId, id, sessionId);
+      const userId = this.$route.params.id;
+      const phaseId = this.$route.query.phase;
+      await incrementUserCriterion(criterionId, userId, phaseId);
       this.fetchData();
     },
     async toggleBoolean(criterionId, value) {
-      const id = this.$route.params.id;
-      const sessionId = this.$route.query.session;
-      await setBooleanValue(criterionId, id, sessionId, value);
+      const userId = this.$route.params.id;
+      const phaseId = this.$route.query.phase;
+      await setBooleanValue(criterionId, userId, phaseId, value);
     },
     openTextModal(criterion) {
       this.activeCriterion = criterion;
@@ -160,14 +147,12 @@ export default {
     },
     async saveText() {
       if (!this.activeCriterion) return;
-      const id = this.$route.params.id;
-      const sessionId = this.$route.query.session;
+      const userId = this.$route.params.id;
+      const phaseId = this.$route.query.phase;
 
-      await setTextValue(this.activeCriterion.criterion_id, id, sessionId, this.textDraft);
+      await setTextValue(this.activeCriterion.criterion_id, userId, phaseId, this.textDraft);
 
-      // UI aktualisieren
       this.activeCriterion.text_value = this.textDraft;
-
       this.cancelText();
     },
   },

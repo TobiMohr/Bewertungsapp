@@ -5,6 +5,7 @@
       'px-4 py-2 rounded-md text-white font-medium transition disabled:opacity-50',
       variantClasses
     ]"
+    :title="tooltip"
   >
     <slot />
   </button>
@@ -13,7 +14,8 @@
 <script>
 export default {
   props: {
-    variant: { type: String, default: 'primary' } // primary, gray, danger
+    variant: { type: String, default: 'primary' },
+    tooltip: { type: String, default: ''}
   },
   computed: {
     variantClasses() {
@@ -24,8 +26,10 @@ export default {
           return 'bg-yellow-400 hover:bg-yellow-500'
         case 'delete':
           return 'bg-red-600 hover:bg-red-700';
+        case 'copy':
+          return 'bg-cyan-500 hover:bg-cyan-600'
         default:
-          return 'bg-green-600 hover:bg-green-700';
+          return 'bg-emerald-500 hover:bg-emerald-600';
       }
     },
   },

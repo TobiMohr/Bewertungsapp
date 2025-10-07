@@ -33,7 +33,7 @@
             @click="$router.push(`/sessions/edit/${session.id}`)"
             class="p-2 rounded-full"
             variant="edit"
-            title="Edit session"
+            tooltip="Edit session"
           >
             <PencilIcon class="h-5 w-5" />
           </BaseButton>
@@ -42,7 +42,7 @@
             @click="confirmDelete(session.id)"
             class="p-2 rounded-full"
             variant="delete"
-            title="Delete session"
+            tooltip="Delete session"
           >
             <TrashIcon class="h-5 w-5" />
           </BaseButton>

@@ -16,7 +16,7 @@
         placeholder="Description (optional)"
       />
 
-      <!-- Criteria selection -->
+        <!-- Criteria selection -->
       <div>
         <h3 class="text-lg font-semibold text-gray-700 mb-4">
           Select Criteria
@@ -80,19 +80,9 @@ export default {
         description: "",
       },
       criteria: [],
-      checkedCriteria: {},   // Mapping: crit.id -> true/false
-      criteriaWeights: {},   // Mapping: crit.id -> weight
+      checkedCriteria: {},
+      criteriaWeights: {}, 
     };
-  },
-  computed: {
-    selectedCriteria() {
-      return Object.entries(this.checkedCriteria)
-        .filter(([, isChecked]) => isChecked)
-        .map(([id]) => ({
-          id: Number(id),
-          weight: this.criteriaWeights[id] || 1, // Fallback default=1
-        }));
-    },
   },
   methods: {
     async fetchCriteria() {
@@ -100,23 +90,33 @@ export default {
         const res = await getCriterias();
         this.criteria = res.data;
 
-        // Standardmäßig: alle ausgewählt und weight = 1
-        this.checkedCriteria = Object.fromEntries(
-          this.criteria.map((c) => [c.id, true])
-        );
-        this.criteriaWeights = Object.fromEntries(
-          this.criteria.map((c) => [c.id, 1])
-        );
+        // Initialize checked criteria and weights
+        this.checkedCriteria = Object.fromEntries(this.criteria.map(c => [c.id, true]));
+        this.criteriaWeights = Object.fromEntries(this.criteria.map(c => [c.id, 1]));
       } catch (err) {
         console.error("Failed to load criteria", err);
       }
     },
     async submitForm() {
       try {
-        await createSession({
+        // Build payload with a single default phase
+        const payload = {
           ...this.session,
-          criteria: this.selectedCriteria,
-        });
+          phases: [
+            {
+              title: "Default Phase",
+              description: "Default Phase which is created for the session",
+              criteria: Object.entries(this.checkedCriteria)
+                .filter(([, checked]) => checked)
+                .map(([id]) => ({
+                  id: Number(id),
+                  weight: this.criteriaWeights[id] || 1,
+                })),
+            },
+          ],
+        };
+
+        await createSession(payload);
         this.$router.push("/");
       } catch (err) {
         alert(err.response?.data?.detail || "Failed to create session");

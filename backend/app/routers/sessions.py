@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from .. import db, models
-from ..models import User, UserCriterion, Criterion, SessionCriterion
-from ..schemas import SessionCreate, SessionRead, SessionUpdate
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
+from .. import db
+from ..models import Session as SessionModel, Phase, PhaseCriterion, Criterion, User, UserCriterion
+from ..schemas import SessionCreate, SessionRead, SessionUpdate
+
+
 router = APIRouter(prefix="/sessions", tags=["sessions"])
+
 
 def get_db():
     db_sess = db.SessionLocal()
@@ -15,124 +18,149 @@ def get_db():
         db_sess.close()
 
 
-@router.post("/", response_model=SessionRead)
-def create_session(payload: SessionCreate, db: Session = Depends(get_db)):
-    # Step 1: Create the session
-    new_session = models.Session(
-        title=payload.title,
-        description=payload.description
-    )
-    db.add(new_session)
+def create_user_criteria_for_phase(db: Session, phase: Phase):
+    users = db.query(User).all()
+    for user in users:
+        for assoc in phase.phase_criteria_assoc:
+            exists = db.query(UserCriterion).filter_by(
+                user_id=user.id,
+                criterion_id=assoc.criterion_id,
+                phase_id=phase.id
+            ).first()
+            if not exists:
+                uc = UserCriterion(
+                    user_id=user.id,
+                    criterion_id=assoc.criterion_id,
+                    phase_id=phase.id
+                )
+                db.add(uc)
     db.commit()
-    db.refresh(new_session)
 
-    # Step 2: Assign criteria with weight
-    if payload.criteria:
-        for crit in payload.criteria:
-            db_crit = db.query(models.Criterion).filter_by(id=crit.id).first()
-            if not db_crit:
-                continue
-            assoc = SessionCriterion(
-                session_id=new_session.id,
-                criterion_id=db_crit.id,
+
+@router.post("/", response_model=SessionRead)
+def create_session(session_data: SessionCreate, db: Session = Depends(get_db)):
+    # Create the session
+    session = SessionModel(
+        title=session_data.title,
+        description=session_data.description
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+
+    # Create phases and criteria associations
+    for phase_data in session_data.phases:
+        phase = Phase(
+            title=phase_data.title,
+            description=phase_data.description,
+            session_id=session.id
+        )
+        db.add(phase)
+        db.commit()
+        db.refresh(phase)
+
+        for crit in phase_data.criteria:
+            assoc = PhaseCriterion(
+                phase_id=phase.id,
+                criterion_id=crit.id,
                 weight=crit.weight
             )
             db.add(assoc)
+        db.commit()
 
-    db.commit()
+        # Create UserCriterion entries for this phase
+        create_user_criteria_for_phase(db, phase)
 
-    # Step 3: Create UserCriterion entries for all users and all session criteria
-    users = db.query(models.User).all()
-    for user in users:
-        for assoc in new_session.session_criteria_assoc:
-            exists = db.query(models.UserCriterion).filter_by(
-                user_id=user.id,
-                criterion_id=assoc.criterion_id,
-                session_id=new_session.id
-            ).first()
-            if not exists:
-                uc = models.UserCriterion(
-                    user_id=user.id,
-                    criterion_id=assoc.criterion_id,
-                    session_id=new_session.id
-                )
-                db.add(uc)
+    # Reload the session with nested phases & criteria
+    session = db.query(SessionModel).options(
+        joinedload(SessionModel.phases)
+        .joinedload(Phase.phase_criteria_assoc)
+        .joinedload(PhaseCriterion.criterion)
+    ).filter(SessionModel.id == session.id).first()
 
-    db.commit()
-    db.refresh(new_session)
-
-    return new_session
+    return session_to_dict(session)
 
 
 @router.get("/", response_model=List[SessionRead])
-def get_sessions(session: Session = Depends(get_db)):
-    return session.query(models.Session).all()
+def get_sessions(db: Session = Depends(get_db)):
+    sessions = db.query(SessionModel).options(
+        joinedload(SessionModel.phases)
+        .joinedload(Phase.phase_criteria_assoc)
+        .joinedload(PhaseCriterion.criterion)
+    ).all()
+    return [session_to_dict(s) for s in sessions]
 
 
 @router.get("/{session_id}", response_model=SessionRead)
-def get_session(session_id: int, session: Session = Depends(get_db)):
-    db_session = session.query(models.Session).filter(models.Session.id == session_id).first()
+def get_session(session_id: int, db: Session = Depends(get_db)):
+    db_session = db.query(SessionModel).options(
+        joinedload(SessionModel.phases)
+        .joinedload(Phase.phase_criteria_assoc)
+        .joinedload(PhaseCriterion.criterion)
+    ).filter(SessionModel.id == session_id).first()
+
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
-    return db_session
+
+    return session_to_dict(db_session)
 
 
 @router.put("/{session_id}", response_model=SessionRead)
-def update_session(session_id: int, session_data: SessionUpdate, db: Session = Depends(get_db)):
-    db_session = db.query(models.Session).filter(models.Session.id == session_id).first()
+def update_session(session_id: int, payload: SessionUpdate, db: Session = Depends(get_db)):
+    db_session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Update basic fields
-    db_session.title = session_data.title
-    db_session.description = session_data.description
-
-    if session_data.criteria is not None:
-        # Lösche alte Assoziationen
-        db.query(SessionCriterion).filter_by(session_id=db_session.id).delete()
-
-        # Füge neue Assoziationen hinzu
-        for crit in session_data.criteria:
-            db_crit = db.query(models.Criterion).filter_by(id=crit.id).first()
-            if not db_crit:
-                continue
-            assoc = SessionCriterion(
-                session_id=db_session.id,
-                criterion_id=db_crit.id,
-                weight=crit.weight
-            )
-            db.add(assoc)
-
-        db.commit()
-
-        # UserCriteria aktualisieren (neu erzeugen, falls nötig)
-        users = db.query(models.User).all()
-        for user in users:
-            for crit in session_data.criteria:
-                exists = db.query(models.UserCriterion).filter_by(
-                    user_id=user.id,
-                    criterion_id=crit.id,
-                    session_id=db_session.id
-                ).first()
-                if not exists:
-                    uc = models.UserCriterion(
-                        user_id=user.id,
-                        criterion_id=crit.id,
-                        session_id=db_session.id
-                    )
-                    db.add(uc)
+    db_session.title = payload.title
+    db_session.description = payload.description
 
     db.commit()
     db.refresh(db_session)
-    return db_session
+
+    # Reload session with phases & criteria for response
+    db_session = db.query(SessionModel).options(
+        joinedload(SessionModel.phases)
+        .joinedload(Phase.phase_criteria_assoc)
+        .joinedload(PhaseCriterion.criterion)
+    ).filter(SessionModel.id == session_id).first()
+
+    return session_to_dict(db_session)
 
 
 @router.delete("/{session_id}", response_model=dict)
 def delete_session(session_id: int, session: Session = Depends(get_db)):
-    db_session = session.query(models.Session).filter(models.Session.id == session_id).first()
+    db_session = session.query(SessionModel).filter(SessionModel.id == session_id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
 
     session.delete(db_session)
     session.commit()
     return {"status": "success", "message": f"Session {session_id} deleted"}
+
+def session_to_dict(session: SessionModel) -> dict:
+    return {
+        "id": session.id,
+        "title": session.title,
+        "description": session.description,
+        "created_at": session.created_at,
+        "updated_at": session.updated_at,
+        "phases": [
+            {
+                "id": phase.id,
+                "title": phase.title,
+                "description": phase.description,
+                "session_id": phase.session_id,
+                "created_at": phase.created_at,
+                "updated_at": phase.updated_at,
+                "criteria": [
+                    {
+                        "criterion": pc.criterion,
+                        "weight": pc.weight
+                    }
+                    for pc in phase.phase_criteria_assoc
+                ]
+            }
+            for phase in session.phases
+        ]
+    }
+

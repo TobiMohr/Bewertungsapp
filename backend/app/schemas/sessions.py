@@ -2,39 +2,28 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
-from .criterias import CriterionRead
+from .criterias import CriterionWithWeightCreate
+from .phases import PhaseRead, PhaseCreate
 
-class CriterionWithWeightRead(BaseModel):
-    criterion: CriterionRead
-    weight: int
-
-    class Config:
-        orm_mode = True
-
-
-class CriterionWithWeightCreate(BaseModel):
-    id: int
-    weight: int = 1
-
-
+# --- Session Base ---
 class SessionBase(BaseModel):
     title: str
     description: Optional[str] = None
 
-
+# --- Session Create ---
 class SessionCreate(SessionBase):
-    criteria: Optional[List[CriterionWithWeightCreate]] = []
+    phases: Optional[List[PhaseCreate]] = []
 
-
+# --- Session Update ---
 class SessionUpdate(SessionBase):
-    criteria: Optional[List[CriterionWithWeightCreate]] = []
+    phases: Optional[List[PhaseCreate]] = []
 
-
+# --- Session Read ---
 class SessionRead(SessionBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    session_criteria_assoc: List[CriterionWithWeightRead] = []
+    phases: List[PhaseRead] = []
 
     class Config:
         orm_mode = True 

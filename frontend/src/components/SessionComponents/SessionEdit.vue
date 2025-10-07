@@ -1,136 +1,126 @@
 <template>
   <div class="max-w-2xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
-    <h2 class="text-2xl font-bold text-gray-800 mb-6">Edit Session</h2>
+    
+    <!-- Header with Edit Session button next to the headline -->
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold text-gray-800">Edit Session</h2>
+      <BaseButton
+        class="p-2 rounded-full"
+        variant="edit"
+        tooltip="Edit this Session"
+        @click="openEditModal"
+      >
+        <PencilIcon class="h-5 w-5" />
+      </BaseButton>
+    </div>
 
-    <form @submit.prevent="updateSessionHandler" class="space-y-6">
-      <!-- Title -->
+    <!-- Display session info -->
+    <div class="space-y-4">
       <div>
-        <label class="block mb-2 font-semibold">Title</label>
-        <input
-          v-model="form.title"
-          type="text"
-          class="w-full border border-gray-300 rounded-lg p-2"
-          required
-        />
+        <label class="block font-bold text-gray-600">Title:</label>
+        <p class="text-gray-800">{{ form.title }}</p>
       </div>
 
-      <!-- Description -->
       <div>
-        <label class="block mb-2 font-semibold">Description</label>
-        <textarea
-          v-model="form.description"
-          class="w-full border border-gray-300 rounded-lg p-2"
-          rows="4"
-        ></textarea>
+        <label class="block font-bold text-gray-600">Description:</label>
+        <p class="text-gray-800">{{ form.description || "—" }}</p>
+      </div>
+    </div>
+
+    <!-- Phases list with "Add Phase" button -->
+    <div class="mt-8">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-800">Phases</h3>
+        <BaseButton
+          @click="$router.push({ path: '/phases/create', query: { sessionId: $route.params.id } })"
+        >
+          Add Phase
+        </BaseButton>
       </div>
 
-      <!-- Criteria selection -->
-      <div>
-        <h3 class="text-lg font-semibold text-gray-700 mb-4">
-          Select Criteria
-        </h3>
+      <ul class="divide-y divide-gray-200">
+        <li
+          v-for="phase in phases"
+          :key="phase.id"
+          class="py-3 cursor-pointer hover:bg-gray-50 px-2 rounded"
+          @click="$router.push(`/phases/${phase.id}`)"
+        >
+          <div class="flex items-center justify-between">
+            <span class="font-medium text-gray-700 hover:underline">{{ phase.title }}</span>
+            <p class="text-gray-500 text-sm">{{ phase.description }}</p>
+          </div>
+        </li>
+      </ul>
+    </div>
 
-        <p class="text-sm text-gray-500 mb-4">
-          Existing criteria cannot be deselected. You can add new criteria and adjust weights.
-        </p>
+    <!-- Edit Session Modal -->
+    <BaseDialog v-if="showEditModal" @close="showEditModal = false">
+      <template #title>Edit Session</template>
 
-        <div class="flex flex-col space-y-3">
-          <div
-            v-for="crit in criteria"
-            :key="crit.id"
-            class="flex items-center justify-between space-x-4"
-          >
-            <!-- Left column: Name + Toggle + Lock -->
-            <div class="flex items-center space-x-2 w-3/4">
-              <span class="text-gray-800 w-40 truncate">{{ crit.name }}</span>
-              
-              <div class="flex items-center space-x-1">
-                <BaseToggle
-                  v-model="checkedCriteria[String(crit.id)]"
-                  :disabled="sessionCriteriaIds.includes(crit.id)"
-                />
-                <LockClosedIcon
-                  v-if="sessionCriteriaIds.includes(crit.id)"
-                  class="h-4 w-4 text-gray-400"
-                />
-              </div>
-            </div>
+      <template #content>
+        <div class="space-y-4">
+          <div>
+            <label class="block mb-1 font-semibold">Title</label>
+            <input
+              v-model="editForm.title"
+              type="text"
+              class="w-full border border-gray-300 rounded-lg p-2"
+              required
+            />
+          </div>
 
-            <!-- Right column: Weight Input -->
-            <div class="flex items-center space-x-2 w-1/4 justify-end">
-              <label
-                v-if="checkedCriteria[String(crit.id)]"
-                class="text-sm text-gray-600"
-              >
-                Weight
-              </label>
-              <input
-                v-if="checkedCriteria[String(crit.id)]"
-                type="number"
-                min="0"
-                v-model.number="criteriaWeights[String(crit.id)]"
-                class="w-16 border border-gray-300 rounded px-1 py-1 text-center"
-              />
-            </div>
+          <div>
+            <label class="block mb-1 font-semibold">Description</label>
+            <textarea
+              v-model="editForm.description"
+              class="w-full border border-gray-300 rounded-lg p-2"
+              rows="4"
+            ></textarea>
           </div>
         </div>
-      </div>
+      </template>
 
-      <!-- Buttons -->
-      <div class="flex justify-between pt-4">
-        <BaseButton
-          type="button"
-          variant="cancel"
-          @click="$router.push('/sessions')"
-        >
-          Cancel
-        </BaseButton>
-        <BaseButton type="submit">
-          Update Session
-        </BaseButton>
-      </div>
-    </form>
+      <template #actions>
+        <BaseButton variant="cancel" @click="showEditModal = false">Cancel</BaseButton>
+        <BaseButton @click="updateSessionHandler">Update</BaseButton>
+      </template>
+    </BaseDialog>
   </div>
 </template>
 
 <script>
 import { getSession, updateSession } from "../../api/sessions";
-import { getCriterias } from "../../api/criterias";
 import BaseButton from "../BaseComponents/BaseButton.vue";
-import BaseToggle from "../BaseComponents/BaseToggle.vue";
-import { LockClosedIcon } from '@heroicons/vue/24/solid';
+import BaseDialog from "../BaseComponents/BaseDialog.vue";
+import { PencilIcon } from "@heroicons/vue/24/solid";
 
 export default {
-  components: { BaseButton, BaseToggle, LockClosedIcon },
+  components: { BaseButton, BaseDialog, PencilIcon },
   data() {
     return {
-      form: {
-        title: "",
-        description: "",
-      },
-      criteria: [],               // All available criteria from /criterias
-      checkedCriteria: {},        // Mapping string(id) -> boolean
-      criteriaWeights: {},        // Mapping string(id) -> number (0 allowed)
-      sessionCriteriaIds: [],     // IDs of criteria that already belong to the session
+      form: { title: "", description: "" }, // displayed values
+      editForm: { title: "", description: "" }, // editable values
+      phases: [],
+      showEditModal: false,
     };
   },
   methods: {
+    openEditModal() {
+      this.editForm.title = this.form.title;
+      this.editForm.description = this.form.description;
+      this.showEditModal = true;
+    },
     async updateSessionHandler() {
       const id = this.$route.params.id;
-
-      const payloadCriteria = Object.entries(this.checkedCriteria)
-        .filter(([, checked]) => checked)
-        .map(([idStr]) => {
-          const weight = this.criteriaWeights[idStr] ?? 0;
-          return { id: Number(idStr), weight };
-        });
-
       try {
         await updateSession(id, {
-          ...this.form,
-          criteria: payloadCriteria,
+          title: this.editForm.title,
+          description: this.editForm.description,
         });
-        this.$router.push("/sessions");
+        // Update the displayed values
+        this.form.title = this.editForm.title;
+        this.form.description = this.editForm.description;
+        this.showEditModal = false;
       } catch (err) {
         console.error("Failed to update session:", err);
         alert(err.response?.data?.detail || "Failed to update session");
@@ -139,41 +129,14 @@ export default {
   },
   async mounted() {
     try {
-      // 1) fetch all available criteria
-      const criteriaRes = await getCriterias();
-      this.criteria = criteriaRes.data;
-
-      // init maps with defaults (keys as strings for v-model)
-      this.checkedCriteria = Object.fromEntries(this.criteria.map(c => [String(c.id), false]));
-      this.criteriaWeights = Object.fromEntries(this.criteria.map(c => [String(c.id), 0]));
-
-      // 2) fetch session
       const sessionRes = await getSession(this.$route.params.id);
       const s = sessionRes.data;
+
       this.form.title = s.title;
       this.form.description = s.description;
-
-      // backend returns session_criteria_assoc: [{ criterion: {...}, weight: N }, ...]
-      if (Array.isArray(s.session_criteria_assoc)) {
-        s.session_criteria_assoc.forEach((assoc) => {
-          const cid = assoc.criterion.id;
-          this.sessionCriteriaIds.push(cid);
-          this.checkedCriteria[String(cid)] = true;
-          this.criteriaWeights[String(cid)] = assoc.weight ?? 0;
-        });
-      }
-
-      // defensive: ensure all session criteria are initialized
-      this.sessionCriteriaIds.forEach(cid => {
-        if (!(String(cid) in this.checkedCriteria)) {
-          this.$set(this.checkedCriteria, String(cid), true);
-        }
-        if (!(String(cid) in this.criteriaWeights)) {
-          this.$set(this.criteriaWeights, String(cid), 0);
-        }
-      });
+      this.phases = s.phases || [];
     } catch (err) {
-      console.error("Failed to fetch session or criteria:", err);
+      console.error("Failed to fetch session:", err);
       alert("Failed to load session data");
     }
   },

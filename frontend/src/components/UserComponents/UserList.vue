@@ -10,15 +10,25 @@
       </router-link>
     </div>
 
-    <!-- Session selector -->
+    <!-- Phase selector -->
     <div class="mb-6">
-      <label class="block mb-2 font-semibold">Select Session</label>
-      <BaseSelect
-        :options="sessions.map(s => ({ label: s.title, value: s.id }))"
-        :modelValue="selectedSession"
-        @update:modelValue="updateSession"
-        class="w-full md:w-1/3"
-      />
+      <label class="block mb-2 font-semibold">Select Phase</label>
+      <select v-model="selectedPhaseId" @change="fetchUsersForPhase" class="w-full md:w-1/3 border rounded p-2">
+        <option disabled value="">-- Select Phase --</option>
+        <optgroup
+          v-for="session in sessions"
+          :key="session.id"
+          :label="session.title"
+        >
+          <option
+            v-for="phase in session.phases"
+            :key="phase.id"
+            :value="phase.id"
+          >
+            {{ phase.title }}
+          </option>
+        </optgroup>
+      </select>
     </div>
 
     <!-- User list -->
@@ -31,7 +41,7 @@
         <div>
           <p
             class="text-lg font-medium text-gray-900 cursor-pointer hover:underline"
-            @click="$router.push({ path: `/users/${user.id}`, query: { session: selectedSession } })"
+            @click="$router.push({ path: `/users/${user.id}`, query: { phase: selectedPhaseId } })"
           >
             {{ user.first_name }} {{ user.last_name }} - {{ user.email }}
           </p>
@@ -43,7 +53,7 @@
             @click="$router.push(`/users/edit/${user.id}`)"
             class="p-2 rounded-full"
             variant="edit"
-            title="Edit user"
+            tooltip="Edit user"
           >
             <PencilIcon class="h-5 w-5" />
           </BaseButton>
@@ -52,7 +62,7 @@
             @click="confirmDelete(user.id)"
             class="p-2 rounded-full"
             variant="delete"
-            title="Delete user"
+            tooltip="Delete user"
           >
             <TrashIcon class="h-5 w-5" />
           </BaseButton>
@@ -81,45 +91,47 @@ import { getUsers, deleteUser } from "../../api/users";
 import { getSessions } from "../../api/sessions";
 import { PencilIcon, TrashIcon } from "@heroicons/vue/24/solid";
 import BaseButton from "../BaseComponents/BaseButton.vue";
-import BaseSelect from "../BaseComponents/BaseSelect.vue";
 import ConfirmModal from "../BaseComponents/ConfirmModal.vue";
 
 export default {
-  components: { PencilIcon, TrashIcon, BaseButton, BaseSelect, ConfirmModal },
+  components: { PencilIcon, TrashIcon, BaseButton, ConfirmModal },
   data() {
     return {
       users: [],
       sessions: [],
-      selectedSession: null,
+      selectedPhaseId: null,
       showDeleteModal: false,
       userToDelete: null,
     };
   },
   methods: {
     async fetchSessions() {
-      const res = await getSessions();
-      this.sessions = res.data;
-
-      const stored = localStorage.getItem("selectedSession");
-      if (stored && this.sessions.some(s => s.id === parseInt(stored))) {
-        this.selectedSession = parseInt(stored);
-      } else if (this.sessions.length) {
-        this.selectedSession = this.sessions[0].id;
-        localStorage.setItem("selectedSession", this.selectedSession);
+      try {
+        const res = await getSessions();
+        this.sessions = res.data;
+      } catch (err) {
+        console.error("Failed to load sessions:", err);
       }
     },
+
     async fetchUsers() {
-      const res = await getUsers();
-      this.users = res.data.sort((a, b) => {
-        const last = a.last_name.localeCompare(b.last_name, "en", { sensitivity: "base" });
-        if (last !== 0) return last;
-        return a.first_name.localeCompare(b.first_name, "en", { sensitivity: "base" });
-      });
+      try {
+        const res = await getUsers();
+        this.users = res.data.sort((a, b) => {
+          const last = a.last_name.localeCompare(b.last_name, "en", { sensitivity: "base" });
+          if (last !== 0) return last;
+          return a.first_name.localeCompare(b.first_name, "en", { sensitivity: "base" });
+        });
+      } catch (err) {
+        console.error("Failed to load users:", err);
+      }
     },
+
     confirmDelete(userId) {
       this.userToDelete = userId;
       this.showDeleteModal = true;
     },
+
     async deleteConfirmed() {
       if (this.userToDelete) {
         await deleteUser(this.userToDelete);
@@ -128,15 +140,11 @@ export default {
         this.fetchUsers();
       }
     },
-    updateSession(value) {
-      this.selectedSession = value;
-      localStorage.setItem("selectedSession", value);
-      this.fetchUsers();
-    },
   },
+
   async mounted() {
     await this.fetchSessions();
-    this.fetchUsers();
+    await this.fetchUsers();
   },
 };
 </script>

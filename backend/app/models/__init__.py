@@ -1,7 +1,7 @@
-from .users import User
-from .criterias import Criterion, UserCriterion
+from .criterias import Criterion
+from .phases import Phase, PhaseCriterion
 from .sessions import Session
-from .session_criteria_association import SessionCriterion
+from .users import User, UserCriterion
 
 # Optionally export Base here for convenience
 from ..db import Base
@@ -10,8 +10,9 @@ __all__ = (
     "User",
     "Criterion",
     "Session",
+    "Phase",
     "UserCriterion",
-    "SessionCriterion",
+    "PhaseCriterion",
     "Base",
 )
 

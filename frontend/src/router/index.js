@@ -18,6 +18,10 @@ import SessionList from "@/components/SessionComponents/SessionList.vue";
 import SessionForm from "@/components/SessionComponents/SessionForm.vue";
 import SessionEdit from "@/components/SessionComponents/SessionEdit.vue";
 
+// Phases
+import PhaseDetail from "@/components/PhaseComponents/PhaseDetail.vue";
+import PhaseForm from "@/components/PhaseComponents/PhaseForm.vue";
+
 const routes = [
   { path: "/", redirect: "/login" },
   { path: "/login", component: LoginForm },
@@ -73,6 +77,18 @@ const routes = [
     path: "/sessions/edit/:id",
     component: SessionEdit,
     props: true,
+    meta: { requiresAuth: true },
+  },
+  // Phases
+  {
+    path: "/phases/:id",
+    component: PhaseDetail,
+    props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/phases/create",
+    component: PhaseForm,
     meta: { requiresAuth: true },
   },
 ];

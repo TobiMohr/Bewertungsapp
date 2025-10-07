@@ -13,6 +13,4 @@ class Session(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    user_criteria = relationship("UserCriterion", back_populates="session")
-    session_criteria_assoc = relationship("SessionCriterion", back_populates="session", cascade="all, delete-orphan")
-    criteria = relationship("Criterion", secondary="session_criteria_association", back_populates="sessions")
+    phases = relationship("Phase", back_populates="session", cascade="all, delete-orphan")
