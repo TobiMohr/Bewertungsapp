@@ -48,16 +48,30 @@
 
             <!-- Criteria grid -->
             <div
-              v-if="phase.userCriteria?.length"
+              v-if="sortedCriteria(phase).length"
               class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
             >
               <div
-                v-for="uc in phase.userCriteria"
+                v-for="uc in sortedCriteria(phase)"
                 :key="uc.id"
                 class="flex justify-between items-center p-3 border rounded-lg shadow-sm bg-white"
               >
-                <p class="text-gray-900 font-medium">{{ uc.criterion.name }}</p>
+                <div class="flex flex-col">
+                  <!-- Kriterium + Gewicht -->
+                  <p class="text-gray-900 font-medium">
+                    {{ uc.criterion.name }}
+                    <span
+                      class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full"
+                      :class="uc.criterion.weight === 0
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-emerald-100 text-emerald-700'"
+                    >
+                      Gewicht: {{ uc.criterion.weight }}
+                    </span>
+                  </p>
+                </div>
 
+                <!-- Anzeige je nach Typ -->
                 <div
                   v-if="uc.criterion.type === 'countable'"
                   class="text-gray-700 font-bold text-lg"
@@ -83,6 +97,7 @@
               </div>
             </div>
 
+            <!-- Keine Kriterien -->
             <p v-else class="text-gray-500 text-center">
               Keine Kriterien für diese Phase.
             </p>
@@ -91,6 +106,7 @@
       </div>
     </div>
 
+    <!-- Keine Sessions -->
     <p v-else class="text-gray-500 text-center mt-8">
       Keine Sessions für diesen Benutzer gefunden.
     </p>
@@ -108,6 +124,14 @@ export default {
       activeSession: 0, // Index des aktiven Tabs
     };
   },
+  methods: {
+    sortedCriteria(phase) {
+      if (!phase.userCriteria) return [];
+      return [...phase.userCriteria].sort((a, b) =>
+        a.criterion.name.localeCompare(b.criterion.name, "de", { sensitivity: "base" })
+      );
+    },
+  },
   async mounted() {
     try {
       const userId = this.$route.params.id;
@@ -123,3 +147,9 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+button {
+  transition: all 0.2s ease;
+}
+</style>

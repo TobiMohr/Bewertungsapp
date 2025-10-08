@@ -69,6 +69,9 @@ def get_user_evaluation(user_id: int, db: Session = Depends(get_db)):
         db.query(models.Session)
         .options(
             joinedload(models.Session.phases)
+            .joinedload(models.Phase.phase_criteria_assoc)
+            .joinedload(models.PhaseCriterion.criterion), 
+            joinedload(models.Session.phases)
             .joinedload(models.Phase.user_criteria)
             .joinedload(models.UserCriterion.criterion)
         )
@@ -95,6 +98,14 @@ def get_user_evaluation(user_id: int, db: Session = Depends(get_db)):
                                 "id": uc.criterion.id,
                                 "name": uc.criterion.name,
                                 "type": uc.criterion.type.value,
+                                "weight": next(
+                                    (
+                                        assoc.weight
+                                        for assoc in p.phase_criteria_assoc
+                                        if assoc.criterion_id == uc.criterion.id
+                                    ),
+                                    None,
+                                ),
                             },
                         }
                         for uc in p.user_criteria
