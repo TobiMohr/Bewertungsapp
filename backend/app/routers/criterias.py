@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+from enum import Enum
 
 from .. import db
 from ..models import Criterion, User, UserCriterion, Phase
@@ -8,12 +9,19 @@ from ..schemas.criterias import (
     CriterionType,
     CriterionCreate,
     CriterionRead,
+    UserCriterionUpdate,
     UserCriterionRead,
 )
+import logging
+
+# Configure basic logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/criteria", tags=["criteria"])
 
 
+# ----- Database Dependency -----
 def get_db():
     db_sess = db.SessionLocal()
     try:
@@ -22,78 +30,15 @@ def get_db():
         db_sess.close()
 
 
-# ----- Criterion -----
-@router.post("/", response_model=CriterionRead)
-def create_criterion(payload: CriterionCreate, session: Session = Depends(get_db)):
-    # Check if it already exists
-    existing = session.query(Criterion).filter(Criterion.name == payload.name).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Criterion already exists")
-
-    # Create the new criterion
-    new_crit = Criterion(
-        name=payload.name,
-        type=CriterionType(payload.type)  # converts string -> Enum
-    )
-    session.add(new_crit)
-    session.commit()
-    session.refresh(new_crit)
-
-    # 🔹 Assign it to every user for every session
-    users = session.query(User).all()
-    phases = session.query(Phase).all()
-    for user in users:
-        for phase in phases:
-            exists = session.query(UserCriterion).filter_by(
-                user_id=user.id,
-                criterion_id=new_crit.id,
-                phase_id=phase.id
-            ).first()
-            if not exists:
-                uc = UserCriterion(user_id=user.id, criterion_id=new_crit.id, phase_id=phase.id)
-                session.add(uc)
-
-    session.commit()
-
-    return new_crit
+# ----- Helper Functions -----
+def get_or_404(session: Session, model, id: int, name: str):
+    obj = session.query(model).get(id)
+    if not obj:
+        raise HTTPException(status_code=404, detail=f"{name} not found")
+    return obj
 
 
-@router.get("/", response_model=List[CriterionRead])
-def list_criteria(session: Session = Depends(get_db)):
-    return session.query(Criterion).all()
-
-
-# ----- UserCriterion -----
-@router.get("/user/{user_id}/phase/{phase_id}", response_model=List[UserCriterionRead])
-def get_user_criteria(user_id: int, phase_id: int, session: Session = Depends(get_db)):
-    # Ensure phase exists
-    phase = session.query(Phase).get(phase_id)
-    if not phase:
-        raise HTTPException(status_code=404, detail="Phase not found")
-
-    data = (
-        session.query(UserCriterion)
-        .filter(UserCriterion.user_id == user_id, UserCriterion.phase_id == phase_id)
-        .all()
-    )
-    for uc in data:
-        _ = uc.criterion
-    return data
-
-
-@router.post("/{criterion_id}/assign/{user_id}/phase/{phase_id}", response_model=UserCriterionRead)
-def assign_criterion_to_user(criterion_id: int, user_id: int, phase_id: int, session: Session = Depends(get_db)):
-    criterion = session.query(Criterion).get(criterion_id)
-    user = session.query(User).get(user_id)
-    phase = session.query(Phase).get(phase_id)
-
-    if not criterion:
-        raise HTTPException(status_code=404, detail="Criterion not found")
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    if not phase:
-        raise HTTPException(status_code=404, detail="Phase not found")
-
+def get_or_create_usercriterion(session: Session, user_id: int, criterion_id: int, phase_id: int):
     uc = (
         session.query(UserCriterion)
         .filter_by(user_id=user_id, criterion_id=criterion_id, phase_id=phase_id)
@@ -107,103 +52,100 @@ def assign_criterion_to_user(criterion_id: int, user_id: int, phase_id: int, ses
     return uc
 
 
-@router.post("/{criterion_id}/increment/{user_id}/phase/{phase_id}", response_model=UserCriterionRead)
-def increment_user_criterion(criterion_id: int, user_id: int, phase_id: int, session: Session = Depends(get_db)):
-    criterion = session.query(Criterion).get(criterion_id)
-    phase = session.query(Phase).get(phase_id)
+# ----- Criterion -----
+@router.post("/", response_model=CriterionRead)
+def create_criterion(payload: CriterionCreate, session: Session = Depends(get_db)):
+    existing = session.query(Criterion).filter(Criterion.name == payload.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Criterion already exists")
 
-    if not criterion:
-        raise HTTPException(status_code=404, detail="Criterion not found")
-    if not phase:
-        raise HTTPException(status_code=404, detail="Phase not found")
-    if criterion.type.value != "countable":
-        raise HTTPException(status_code=400, detail=f"Criterion is not countable, it is '{criterion.type.value}'")
-
-    uc = (
-        session.query(UserCriterion)
-        .filter_by(user_id=user_id, criterion_id=criterion_id, phase_id=phase_id)
-        .first()
+    new_crit = Criterion(
+        name=payload.name,
+        type=CriterionType(payload.type)
     )
-    if not uc:
-        uc = UserCriterion(user_id=user_id, criterion_id=criterion_id, phase_id=phase_id, count_value=0)
-        session.add(uc)
-
-    uc.count_value = (uc.count_value or 0) + 1
+    session.add(new_crit)
     session.commit()
-    session.refresh(uc)
-    return uc
+    session.refresh(new_crit)
+
+    # Assign to every user and phase
+    users = session.query(User).all()
+    phases = session.query(Phase).all()
+    for user in users:
+        for phase in phases:
+            exists = session.query(UserCriterion).filter_by(
+                user_id=user.id,
+                criterion_id=new_crit.id,
+                phase_id=phase.id
+            ).first()
+            if not exists:
+                session.add(UserCriterion(user_id=user.id, criterion_id=new_crit.id, phase_id=phase.id))
+    session.commit()
+
+    return new_crit
 
 
-@router.put("/{criterion_id}/set/{user_id}/phase/{phase_id}", response_model=UserCriterionRead)
-def set_boolean_value(
+@router.get("/", response_model=List[CriterionRead])
+def list_criteria(session: Session = Depends(get_db)):
+    return session.query(Criterion).all()
+
+
+# ----- UserCriterion -----
+@router.get("/user/{user_id}/phase/{phase_id}", response_model=List[UserCriterionRead])
+def get_user_criteria(user_id: int, phase_id: int, session: Session = Depends(get_db)):
+    phase = get_or_404(session, Phase, phase_id, "Phase")
+
+    data = (
+        session.query(UserCriterion)
+        .filter(UserCriterion.user_id == user_id, UserCriterion.phase_id == phase_id)
+        .all()
+    )
+    for uc in data:
+        _ = uc.criterion  # preload relationship
+    return data
+
+
+# ----- Unified Update Endpoint -----
+class UpdateAction(str, Enum):
+    increment = "increment"
+    decrement = "decrement"
+    set_boolean = "set_boolean"
+    set_text = "set_text"
+
+@router.put("/{criterion_id}/{user_id}/phase/{phase_id}", response_model=UserCriterionRead)
+def update_user_criterion(
     criterion_id: int,
     user_id: int,
     phase_id: int,
-    value: bool = Query(..., description="Boolean value to set"),
+    action: UpdateAction = Query(...),
+    payload: Optional[UserCriterionUpdate] = Body(None),  # ✅ optional
     session: Session = Depends(get_db)
 ):
-    criterion = session.query(Criterion).get(criterion_id)
-    phase = session.query(Phase).get(phase_id)
+    criterion = get_or_404(session, Criterion, criterion_id, "Criterion")
+    phase = get_or_404(session, Phase, phase_id, "Phase")
+    uc = get_or_create_usercriterion(session, user_id, criterion_id, phase_id)
 
-    if not criterion:
-        raise HTTPException(status_code=404, detail="Criterion not found")
-    if not phase:
-        raise HTTPException(status_code=404, detail="Phase not found")
-    if criterion.type.value != "boolean":
-        raise HTTPException(status_code=400, detail=f"Criterion is not boolean, it is '{criterion.type.value}'")
+    value = payload.value if payload else None
 
-    uc = (
-        session.query(UserCriterion)
-        .filter_by(user_id=user_id, criterion_id=criterion_id, phase_id=phase_id)
-        .first()
-    )
-    if not uc:
-        uc = UserCriterion(user_id=user_id, criterion_id=criterion_id, phase_id=phase_id)
-        session.add(uc)
+    if action == UpdateAction.increment:
+        uc.count_value = (uc.count_value or 0) + 1
+    elif action == UpdateAction.decrement:
+        uc.count_value = max((uc.count_value or 0) - 1, 0)
+    elif action == UpdateAction.set_boolean:
+        uc.is_fulfilled = bool(value)
+    elif action == UpdateAction.set_text:
+        uc.text_value = str(value)
 
-    uc.is_fulfilled = value
     session.commit()
     session.refresh(uc)
     return uc
 
 
-@router.put("/{criterion_id}/text/{user_id}/phase/{phase_id}", response_model=UserCriterionRead)
-def set_text_value(
-    criterion_id: int,
-    user_id: int,
-    phase_id: int,
-    value: str = Body(..., embed=True, description="Text for this criterion"),
-    session: Session = Depends(get_db)
-):
-    criterion = session.query(Criterion).get(criterion_id)
-    phase = session.query(Phase).get(phase_id)
 
-    if not criterion:
-        raise HTTPException(status_code=404, detail="Criterion not found")
-    if not phase:
-        raise HTTPException(status_code=404, detail="Phase not found")
-    if criterion.type.value != "text":
-        raise HTTPException(status_code=400, detail=f"Criterion is not type: text, it is type:'{criterion.type.value}'")
-
-    uc = (
-        session.query(UserCriterion)
-        .filter_by(user_id=user_id, criterion_id=criterion_id, phase_id=phase_id)
-        .first()
-    )
-    if not uc:
-        uc = UserCriterion(user_id=user_id, criterion_id=criterion_id, phase_id=phase_id)
-        session.add(uc)
-
-    uc.text_value = value
-    session.commit()
-    session.refresh(uc)
-    return uc
 
 # ----- List all UserCriterion -----
 @router.get("/usercriteria", response_model=List[UserCriterionRead])
 def list_all_user_criteria(session: Session = Depends(get_db)):
     data = session.query(UserCriterion).all()
     for uc in data:
-        _ = uc.criterion  # ensure criterion relationship is loaded
+        _ = uc.criterion  # ensure relationship loaded
     return data
-

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 
 # ---------- Enum ----------
@@ -56,3 +56,6 @@ class UserCriterionRead(UserCriterionBase):
 
     class Config:
         orm_mode = True
+
+class UserCriterionUpdate(BaseModel):
+    value: Optional[Union[str, bool]] = None

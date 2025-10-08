@@ -19,7 +19,15 @@
 
         <!-- Countable criterion -->
         <div v-if="c.criterion.type === 'countable'" class="flex items-center space-x-2">
+          <!-- Decrement Button -->
+          <BaseButton @click="decrement(c.criterion_id)">
+            <MinusIcon class="h-5 w-5" />
+          </BaseButton>
+
+          <!-- Current Count -->
           <span class="text-gray-700 font-bold text-lg">{{ c.count_value ?? 0 }}</span>
+
+          <!-- Increment Button -->
           <BaseButton @click="increment(c.criterion_id)">
             <PlusIcon class="h-5 w-5" />
           </BaseButton>
@@ -84,16 +92,17 @@
 import BaseButton from "../BaseComponents/BaseButton.vue";
 import { getUser } from "../../api/users";
 import { getPhase } from "../../api/phases";
-import { DocumentTextIcon , PlusIcon } from "@heroicons/vue/24/solid";
+import { DocumentTextIcon, PlusIcon, MinusIcon } from "@heroicons/vue/24/solid";
 import {
   getUserCriterias,
   incrementUserCriterion,
+  decrementUserCriterion,
   setBooleanValue,
   setTextValue,
 } from "../../api/criterias";
 
 export default {
-  components: { BaseButton, DocumentTextIcon, PlusIcon },
+  components: { BaseButton, DocumentTextIcon, PlusIcon, MinusIcon },
   data() {
     return {
       user: null,
@@ -107,7 +116,7 @@ export default {
   methods: {
     async fetchData() {
       const userId = this.$route.params.id;
-      const phaseId = this.$route.query.phase; // ← use phase_id instead of session_id
+      const phaseId = this.$route.query.phase;
 
       if (!phaseId) return;
 
@@ -127,13 +136,34 @@ export default {
     async increment(criterionId) {
       const userId = this.$route.params.id;
       const phaseId = this.$route.query.phase;
+
+      // Optimistically update UI
+      const crit = this.criteria.find(c => c.criterion_id === criterionId);
+      if (crit) crit.count_value = (crit.count_value || 0) + 1;
+
+      // Persist backend change
       await incrementUserCriterion(criterionId, userId, phaseId);
-      this.fetchData();
+    },
+
+    async decrement(criterionId) {
+      const userId = this.$route.params.id;
+      const phaseId = this.$route.query.phase;
+
+      // Optimistically update UI
+      const crit = this.criteria.find(c => c.criterion_id === criterionId);
+      if (crit) crit.count_value = Math.max((crit.count_value || 0) - 1, 0);
+
+      // Persist backend change
+      await decrementUserCriterion(criterionId, userId, phaseId);
     },
     async toggleBoolean(criterionId, value) {
       const userId = this.$route.params.id;
       const phaseId = this.$route.query.phase;
-      await setBooleanValue(criterionId, userId, phaseId, value);
+      
+      // ensure boolean
+      const boolValue = value === true || value === "true";
+      
+      await setBooleanValue(criterionId, userId, phaseId, boolValue);
     },
     openTextModal(criterion) {
       this.activeCriterion = criterion;
@@ -149,9 +179,7 @@ export default {
       if (!this.activeCriterion) return;
       const userId = this.$route.params.id;
       const phaseId = this.$route.query.phase;
-
       await setTextValue(this.activeCriterion.criterion_id, userId, phaseId, this.textDraft);
-
       this.activeCriterion.text_value = this.textDraft;
       this.cancelText();
     },
