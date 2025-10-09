@@ -11,24 +11,13 @@
     </div>
 
     <!-- Phase selector -->
-    <div class="mb-6">
+    <div class="mb-6 w-full md:w-1/3">
       <label class="block mb-2 font-semibold">Select Phase</label>
-      <select v-model="selectedPhaseId" @change="fetchUsersForPhase" class="w-full md:w-1/3 border rounded p-2">
-        <option disabled value="">-- Select Phase --</option>
-        <optgroup
-          v-for="session in sessions"
-          :key="session.id"
-          :label="session.title"
-        >
-          <option
-            v-for="phase in session.phases"
-            :key="phase.id"
-            :value="phase.id"
-          >
-            {{ phase.title }}
-          </option>
-        </optgroup>
-      </select>
+      <BaseSelect
+        v-model="selectedPhaseId"
+        :groups="phaseGroups"
+        placeholder="-- Select Phase --"
+      />
     </div>
 
     <!-- User list -->
@@ -101,9 +90,10 @@ import { getSessions } from "../../api/sessions";
 import { PencilIcon, TrashIcon, ChartBarIcon  } from "@heroicons/vue/24/solid";
 import BaseButton from "../BaseComponents/BaseButton.vue";
 import ConfirmModal from "../BaseComponents/ConfirmModal.vue";
+import BaseSelect from "../BaseComponents/BaseSelect.vue";
 
 export default {
-  components: { PencilIcon, ChartBarIcon , TrashIcon, BaseButton, ConfirmModal },
+  components: { PencilIcon, ChartBarIcon , TrashIcon, BaseButton, BaseSelect, ConfirmModal },
   data() {
     return {
       users: [],
@@ -112,6 +102,17 @@ export default {
       showDeleteModal: false,
       userToDelete: null,
     };
+  },
+  computed: {
+    phaseGroups() {
+      return this.sessions.map(session => ({
+        label: session.title,
+        options: session.phases.map(phase => ({
+          value: phase.id.toString(),
+          label: phase.title,
+        })),
+      }));
+    },
   },
   methods: {
     async fetchSessions() {
