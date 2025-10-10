@@ -1,10 +1,20 @@
 <template>
   <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
 
-    <!-- Header -->
-    <h2 class="text-2xl font-bold text-gray-800 mb-2">
-      {{ phase?.title }} from {{ user?.first_name }} {{ user?.last_name }}
-    </h2>
+    <div class="flex items-center justify-between mb-4">
+      <!-- Header -->
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">
+        {{ phase?.title }} from {{ user?.first_name }} {{ user?.last_name }}
+      </h2>
+
+      <BaseButton
+        variant="switch"
+        @click="$router.push({ path: `/criterias/1/users`, query: { phase: selectedPhaseId } })"
+        tooltip="Switch to Criterion View"
+        >
+        <ArrowsRightLeftIcon class="h-5 w-5" />
+        </BaseButton>
+    </div>
     
     <!-- Phase & User Selection -->
     <div class="mb-6 flex flex-col md:flex-row md:items-end md:space-x-6">
@@ -119,10 +129,10 @@ import {
   setBooleanValue,
   setTextValue,
 } from "../../api/criterias";
-import { DocumentTextIcon, PlusIcon, MinusIcon } from "@heroicons/vue/24/solid";
+import { DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
-  components: { BaseButton, BaseSelect, DocumentTextIcon, PlusIcon, MinusIcon },
+  components: { BaseButton, BaseSelect, DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
   data() {
     return {
       sessions: [],

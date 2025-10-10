@@ -13,6 +13,7 @@ import UserEvaluation from "@/components/UserComponents/UserEvaluation.vue";
 // Criterias
 import CriteriaList from "@/components/CriteriaComponents/CriteriaList.vue";
 import CriteriaForm from "@/components/CriteriaComponents/CriteriaForm.vue";
+import CriterionUserView from "@/components/CriteriaComponents/CriterionUserView.vue";
 
 // Sessions
 import SessionList from "@/components/SessionComponents/SessionList.vue";
@@ -66,6 +67,12 @@ const routes = [
   {
     path: "/criterias/create",
     component: CriteriaForm,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/criterias/:id/users",
+    component: CriterionUserView,
+    props: true,
     meta: { requiresAuth: true },
   },
 

@@ -28,6 +28,8 @@ export default {
           return 'bg-red-600 hover:bg-red-700';
         case 'copy':
           return 'bg-cyan-500 hover:bg-cyan-600'
+        case 'switch':
+          return 'bg-indigo-500 hover:bg-indigo-600'
         default:
           return 'bg-emerald-500 hover:bg-emerald-600';
       }

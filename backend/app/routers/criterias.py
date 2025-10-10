@@ -149,3 +149,21 @@ def list_all_user_criteria(session: Session = Depends(get_db)):
     for uc in data:
         _ = uc.criterion  # ensure relationship loaded
     return data
+
+# GET /criterias/{criterion_id}/users?phase_id=3
+@router.get("/{criterion_id}/users", response_model=List[UserCriterionRead])
+@router.get("/criterion/{criterion_id}/users")
+def get_user_criteria_for_criterion(
+    criterion_id: int, phase_id: Optional[int] = None, session: Session = Depends(get_db)
+):
+    query = session.query(UserCriterion).join(User).filter(UserCriterion.criterion_id == criterion_id)
+    if phase_id:
+        query = query.filter(UserCriterion.phase_id == phase_id)
+    
+    results = query.all()
+    for uc in results:
+        _ = uc.user  # preload user relationship
+    return results
+
+
+

@@ -49,3 +49,14 @@ export const setBooleanValue = (criterionId, userId, phaseId, value) =>
 
 export const setTextValue = (criterionId, userId, phaseId, value) =>
   updateUserCriterion(criterionId, userId, phaseId, "set_text", value);
+
+/**
+ * Get all user criteria entries for a specific criterion (optionally filtered by phase)
+ * @param {number} criterionId 
+ * @param {number|null} phaseId 
+ * @returns {Promise<AxiosResponse>}
+ */
+export const getUserCriteriasForCriterion = (criterionId, phaseId = null) => {
+  const params = phaseId ? { phase_id: phaseId } : {};
+  return axios.get(`${API_URL}/${criterionId}/users`, { params });
+};
