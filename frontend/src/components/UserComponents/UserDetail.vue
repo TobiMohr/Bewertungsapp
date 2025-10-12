@@ -1,10 +1,43 @@
 <template>
   <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
-    <!-- Header -->
-    <h2 class="text-2xl font-bold text-gray-800 mb-2">
-      {{ phase?.title }} von {{ user?.first_name }} {{ user?.last_name }}
-    </h2>
-    <p class="text-gray-600 mb-2">{{ user?.email }}</p>
+
+    <div class="flex items-center justify-between mb-4">
+      <!-- Header -->
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">
+        {{ phase?.title }} from {{ user?.first_name }} {{ user?.last_name }}
+      </h2>
+
+      <BaseButton
+        variant="switch"
+        @click="$router.push({ path: `/criterias/1/users`, query: { phase: selectedPhaseId } })"
+        tooltip="Switch to Criterion View"
+        >
+        <ArrowsRightLeftIcon class="h-5 w-5" />
+        </BaseButton>
+    </div>
+    
+    <!-- Phase & User Selection -->
+    <div class="mb-6 flex flex-col md:flex-row md:items-end md:space-x-6">
+      <!-- Phase Select -->
+      <div class="w-full md:w-1/4">
+        <label class="block mb-2 font-semibold">Select Phase:</label>
+        <BaseSelect
+          v-model="selectedPhaseId"
+          :groups="phaseGroups"
+          placeholder="-- Select Phase --"
+        />
+      </div>
+
+      <!-- User Select -->
+      <div class="w-full md:w-1/4 mt-4 md:mt-0">
+        <label class="block mb-2 font-semibold">Select User:</label>
+        <BaseSelect
+          v-model="selectedUserId"
+          :options="userOptions"
+          placeholder="-- Select User --"
+        />
+      </div>
+    </div>
 
     <h3 class="text-xl font-semibold text-gray-700 mb-4">Criteria</h3>
 
@@ -19,13 +52,16 @@
 
         <!-- Countable criterion -->
         <div v-if="c.criterion.type === 'countable'" class="flex items-center space-x-2">
+          <BaseButton @click="decrement(c.criterion_id)">
+            <MinusIcon class="h-5 w-5" />
+          </BaseButton>
           <span class="text-gray-700 font-bold text-lg">{{ c.count_value ?? 0 }}</span>
           <BaseButton @click="increment(c.criterion_id)">
             <PlusIcon class="h-5 w-5" />
           </BaseButton>
         </div>
 
-        <!-- Text criterion -->    
+        <!-- Text criterion -->
         <div v-else-if="c.criterion.type === 'text'" class="flex items-center">
           <DocumentTextIcon
             class="h-6 w-6 text-indigo-500 hover:text-indigo-600 cursor-pointer"
@@ -82,21 +118,28 @@
 
 <script>
 import BaseButton from "../BaseComponents/BaseButton.vue";
-import { getUser } from "../../api/users";
+import BaseSelect from "../BaseComponents/BaseSelect.vue";
+import { getUsers, getUser } from "../../api/users";
 import { getPhase } from "../../api/phases";
-import { DocumentTextIcon , PlusIcon } from "@heroicons/vue/24/solid";
+import { getSessions } from "../../api/sessions";
 import {
   getUserCriterias,
   incrementUserCriterion,
+  decrementUserCriterion,
   setBooleanValue,
   setTextValue,
 } from "../../api/criterias";
+import { DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
-  components: { BaseButton, DocumentTextIcon, PlusIcon },
+  components: { BaseButton, BaseSelect, DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
   data() {
     return {
+      sessions: [],
+      selectedPhaseId: "",
+      users: [],
       user: null,
+      selectedUserId: "",
       criteria: [],
       showTextModal: false,
       activeCriterion: null,
@@ -104,12 +147,50 @@ export default {
       phase: null,
     };
   },
-  methods: {
-    async fetchData() {
-      const userId = this.$route.params.id;
-      const phaseId = this.$route.query.phase; // ← use phase_id instead of session_id
+  computed: {
+    phaseGroups() {
+      return this.sessions.map(session => ({
+        label: session.title,
+        options: session.phases.map(phase => ({
+          value: phase.id.toString(),
+          label: phase.title,
+        })),
+      }));
+    },
 
-      if (!phaseId) return;
+    userOptions() {
+      return this.users.map(u => ({
+        value: u.id.toString(),
+        label: `${u.first_name} ${u.last_name}`,
+      }));
+    },
+  },
+  watch: {
+    selectedPhaseId(newPhaseId) {
+      this.fetchData(this.selectedUserId, newPhaseId);
+    },
+    selectedUserId(newUserId) {
+      this.fetchData(newUserId, this.selectedPhaseId);
+    },
+  },
+  methods: {
+    async fetchSessions() {
+      const res = await getSessions();
+      this.sessions = res.data;
+      const routePhaseId = this.$route.query.phase;
+      if (routePhaseId) this.selectedPhaseId = routePhaseId.toString();
+    },
+    async fetchUsers() {
+      const res = await getUsers();
+      this.users = res.data;
+      const routeUserId = this.$route.params.id;
+      if (!this.selectedUserId && routeUserId)
+        this.selectedUserId = routeUserId.toString();
+    },
+    async fetchData(userIdOverride, phaseIdOverride) {
+      const userId = userIdOverride || this.selectedUserId;
+      const phaseId = phaseIdOverride || this.selectedPhaseId;
+      if (!phaseId || !userId) return;
 
       const [userRes, critRes, phaseRes] = await Promise.all([
         getUser(userId),
@@ -124,16 +205,25 @@ export default {
         a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
       );
     },
+    async changeUser() {
+      await this.fetchData(this.selectedUserId, this.selectedPhaseId);
+    },
+    async changePhase() {
+      await this.fetchData(this.selectedUserId, this.selectedPhaseId);
+    },
     async increment(criterionId) {
-      const userId = this.$route.params.id;
-      const phaseId = this.$route.query.phase;
-      await incrementUserCriterion(criterionId, userId, phaseId);
-      this.fetchData();
+      const crit = this.criteria.find((c) => c.criterion_id === criterionId);
+      if (crit) crit.count_value = (crit.count_value || 0) + 1;
+      await incrementUserCriterion(criterionId, this.selectedUserId, this.selectedPhaseId);
+    },
+    async decrement(criterionId) {
+      const crit = this.criteria.find((c) => c.criterion_id === criterionId);
+      if (crit) crit.count_value = Math.max((crit.count_value || 0) - 1, 0);
+      await decrementUserCriterion(criterionId, this.selectedUserId, this.selectedPhaseId);
     },
     async toggleBoolean(criterionId, value) {
-      const userId = this.$route.params.id;
-      const phaseId = this.$route.query.phase;
-      await setBooleanValue(criterionId, userId, phaseId, value);
+      const boolValue = value === true || value === "true";
+      await setBooleanValue(criterionId, this.selectedUserId, this.selectedPhaseId, boolValue);
     },
     openTextModal(criterion) {
       this.activeCriterion = criterion;
@@ -147,17 +237,19 @@ export default {
     },
     async saveText() {
       if (!this.activeCriterion) return;
-      const userId = this.$route.params.id;
-      const phaseId = this.$route.query.phase;
-
-      await setTextValue(this.activeCriterion.criterion_id, userId, phaseId, this.textDraft);
-
+      await setTextValue(
+        this.activeCriterion.criterion_id,
+        this.selectedUserId,
+        this.selectedPhaseId,
+        this.textDraft
+      );
       this.activeCriterion.text_value = this.textDraft;
       this.cancelText();
     },
   },
-  mounted() {
-    this.fetchData();
+  async mounted() {
+    await Promise.all([this.fetchSessions(), this.fetchUsers()]);
+    await this.fetchData();
   },
 };
 </script>

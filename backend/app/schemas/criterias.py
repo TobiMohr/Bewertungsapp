@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
+from .users import UserRead
 
 
 # ---------- Enum ----------
@@ -53,6 +54,10 @@ class UserCriterionRead(UserCriterionBase):
     is_fulfilled: Optional[bool] = None
     text_value: Optional[str] = None
     criterion: Optional[CriterionRead] = None
+    user: Optional[UserRead] = None
 
     class Config:
         orm_mode = True
+
+class UserCriterionUpdate(BaseModel):
+    value: Optional[Union[str, bool, int]] = None

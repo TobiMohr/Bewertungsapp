@@ -8,10 +8,12 @@ import LoginForm from "../components/AuthComponents/LoginForm.vue";
 import UserList from "../components/UserComponents/UserList.vue";
 import UserForm from "../components/UserComponents/UserForm.vue";
 import UserDetail from "../components/UserComponents/UserDetail.vue";
+import UserEvaluation from "@/components/UserComponents/UserEvaluation.vue";
 
 // Criterias
 import CriteriaList from "@/components/CriteriaComponents/CriteriaList.vue";
 import CriteriaForm from "@/components/CriteriaComponents/CriteriaForm.vue";
+import CriterionUserView from "@/components/CriteriaComponents/CriterionUserView.vue";
 
 // Sessions
 import SessionList from "@/components/SessionComponents/SessionList.vue";
@@ -23,7 +25,7 @@ import PhaseDetail from "@/components/PhaseComponents/PhaseDetail.vue";
 import PhaseForm from "@/components/PhaseComponents/PhaseForm.vue";
 
 const routes = [
-  { path: "/", redirect: "/login" },
+  { path: "/", redirect: "/users" },
   { path: "/login", component: LoginForm },
   { path: "/register", component: RegisterForm },
 
@@ -31,65 +33,64 @@ const routes = [
   {
     path: "/users",
     component: UserList,
-    meta: { requiresAuth: true },
   },
   {
     path: "/users/create",
     component: UserForm,
-    meta: { requiresAuth: true },
   },
   {
     path: "/users/edit/:id",
     component: UserForm,
     props: true,
-    meta: { requiresAuth: true },
   },
   {
     path: "/users/:id",
     component: UserDetail,
-    meta: { requiresAuth: true },
+  },
+  {
+    path: "/users/:id/evaluation",
+    component: UserEvaluation,
+    props: true,
   },
 
   // Criterias
   {
     path: "/criterias",
     component: CriteriaList,
-    meta: { requiresAuth: true },
   },
   {
     path: "/criterias/create",
     component: CriteriaForm,
-    meta: { requiresAuth: true },
+  },
+  {
+    path: "/criterias/:id/users",
+    component: CriterionUserView,
+    props: true,
   },
 
   // Sessions
   {
     path: "/sessions",
     component: SessionList,
-    meta: { requiresAuth: true },
   },
   {
     path: "/sessions/create",
     component: SessionForm,
-    meta: { requiresAuth: true },
   },
   {
     path: "/sessions/edit/:id",
     component: SessionEdit,
     props: true,
-    meta: { requiresAuth: true },
   },
   // Phases
   {
     path: "/phases/:id",
     component: PhaseDetail,
     props: true,
-    meta: { requiresAuth: true },
   },
   {
     path: "/phases/create",
     component: PhaseForm,
-    meta: { requiresAuth: true },
   },
 ];
 

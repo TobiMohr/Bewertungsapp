@@ -16,18 +16,47 @@ export const getUserCriterias = (userId, phaseId) =>
 export const assignCriterionToUser = (criterionId, userId, phaseId) =>
   axios.post(`${API_URL}/${criterionId}/assign/${userId}/phase/${phaseId}`);
 
+// ----- Unified Update Endpoint -----
+/**
+ * Update a user's criterion.
+ * @param {number} criterionId 
+ * @param {number} userId 
+ * @param {number} phaseId 
+ * @param {'increment'|'decrement'|'set_boolean'|'set_text'} action 
+ * @param {boolean|string|null} value Optional value for boolean/text
+ */
+export const updateUserCriterion = (criterionId, userId, phaseId, action, value = null) => {
+  const url = `${API_URL}/${criterionId}/${userId}/phase/${phaseId}`;
+  
+  // For boolean/text actions, send { value } in the body
+  if (action === "set_boolean" || action === "set_text") {
+    return axios.put(url, { value }, { params: { action } });
+  } else {
+    axios.put(url, {}, { params: { action } });
+
+  }
+};
+
+// ----- Convenience wrappers -----
 export const incrementUserCriterion = (criterionId, userId, phaseId) =>
-  axios.post(`${API_URL}/${criterionId}/increment/${userId}/phase/${phaseId}`);
+  updateUserCriterion(criterionId, userId, phaseId, "increment");
+
+export const decrementUserCriterion = (criterionId, userId, phaseId) =>
+  updateUserCriterion(criterionId, userId, phaseId, "decrement");
 
 export const setBooleanValue = (criterionId, userId, phaseId, value) =>
-  axios.put(
-    `${API_URL}/${criterionId}/set/${userId}/phase/${phaseId}`,
-    null,
-    { params: { value } }
-  );
+  updateUserCriterion(criterionId, userId, phaseId, "set_boolean", value);
 
 export const setTextValue = (criterionId, userId, phaseId, value) =>
-  axios.put(
-    `${API_URL}/${criterionId}/text/${userId}/phase/${phaseId}`,
-    { value }
-  );
+  updateUserCriterion(criterionId, userId, phaseId, "set_text", value);
+
+/**
+ * Get all user criteria entries for a specific criterion (optionally filtered by phase)
+ * @param {number} criterionId 
+ * @param {number|null} phaseId 
+ * @returns {Promise<AxiosResponse>}
+ */
+export const getUserCriteriasForCriterion = (criterionId, phaseId = null) => {
+  const params = phaseId ? { phase_id: phaseId } : {};
+  return axios.get(`${API_URL}/${criterionId}/users`, { params });
+};
