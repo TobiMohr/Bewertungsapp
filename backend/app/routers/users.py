@@ -33,19 +33,21 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     # 🔹 Create UserCriterion entries for all existing sessions & their criteria
     sessions = db.query(models.Session).all()
     for sess in sessions:
-        for crit in sess.criteria:  # alle Kriterien der Session
-            exists = db.query(models.UserCriterion).filter_by(
-                user_id=new_user.id,
-                criterion_id=crit.id,
-                session_id=sess.id
-            ).first()
-            if not exists:
-                uc = models.UserCriterion(
+        for phase in sess.phases:
+            for crit in phase.criteria:
+                exists = db.query(models.UserCriterion).filter_by(
                     user_id=new_user.id,
                     criterion_id=crit.id,
-                    session_id=sess.id
-                )
-                db.add(uc)
+                    phase_id=phase.id
+                ).first()
+                if not exists:
+                    uc = models.UserCriterion(
+                        user_id=new_user.id,
+                        criterion_id=crit.id,
+                        phase_id=phase.id
+                    )
+                    db.add(uc)
+
 
     db.commit()
 
