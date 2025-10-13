@@ -1,7 +1,7 @@
 <template>
   <div class="flex min-h-screen bg-gray-100">
     <!-- Sidebar: show only if logged in -->
-    <SideBar v-if="isLoggedIn && showSidebar" />
+    <SideBar v-if="showSidebar" />
 
     <!-- Main content -->
     <main class="flex-1 p-6">
