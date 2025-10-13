@@ -4,9 +4,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 if os.getenv("DOCKER_ENV", "false").lower() == "true":
-    env_file = ".env.docker"
+    env_file = os.path.join(os.path.dirname(__file__), "../../.env")
 else:
-    env_file = ".env.local"
+    env_file = os.path.join(os.path.dirname(__file__), "../../.env.local")
 
 load_dotenv(find_dotenv(env_file))
 

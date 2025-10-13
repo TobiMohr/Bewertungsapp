@@ -1,10 +1,11 @@
 # Environment files
-backend/.env.local
-backend/.env.docker
+backend/**/.env
+backend/**/.env.local
 frontend/.env.local
-frontend/.env.docker
+frontend/.env
 .env
-.env.*
+.env.local
+
 
 
 # Python cache folders
