@@ -100,11 +100,20 @@
                   </span>
                 </div>
 
-                <div
-                  v-else-if="uc.criterion.type === 'text'"
-                  class="text-gray-600 text-sm italic truncate max-w-[180px]"
-                >
-                  {{ uc.text_value || '—' }}
+                <div v-else-if="uc.criterion.type === 'text'" class="w-full">
+                  <div class="text-gray-800 whitespace-pre-wrap break-words">
+                    <p :class="{ 'line-clamp-3': !uc.showFull }">
+                      {{ uc.text_value || '—' }}
+                    </p>
+
+                    <button
+                      v-if="uc.text_value && uc.text_value.length > 100"  
+                      @click="uc.showFull = !uc.showFull"
+                      class="text-indigo-600 hover:underline text-sm mt-1"
+                    >
+                      {{ uc.showFull ? 'Show less' : 'Show more' }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -194,5 +203,12 @@ export default {
 <style scoped>
 button {
   transition: all 0.2s ease;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-clamp: 3;
+  overflow: hidden;
 }
 </style>
