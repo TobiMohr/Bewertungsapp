@@ -86,13 +86,12 @@
 
               <!-- Text -->
               <div v-else-if="criterion?.type === 'text'">
-                <input
-                  type="text"
+                <textarea
                   v-model="uc.text_value"
                   @blur="updateText(uc)"
-                  class="border rounded-md p-1 w-full text-gray-700"
+                  class="border rounded-md p-2 w-full text-gray-700 resize-y"
                   placeholder="Enter text..."
-                />
+                ></textarea>
               </div>
             </td>
           </tr>
