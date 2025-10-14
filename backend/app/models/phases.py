@@ -2,10 +2,9 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
-    ForeignKey,
-    DateTime,
-    func
+    ForeignKey
 )
+from datetime import datetime, timezone
 from sqlalchemy.orm import relationship
 from ..db import Base
 
@@ -17,8 +16,15 @@ class Phase(Base):
     description = Column(String, nullable=True)
     session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at = Column(
+        String, 
+        default=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    updated_at = Column(
+        String, 
+        default=lambda: datetime.now(timezone.utc).isoformat(),
+        onupdate=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
     session = relationship("Session", back_populates="phases")
 
