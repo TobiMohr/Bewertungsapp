@@ -11,9 +11,9 @@
         variant="switch"
         @click="$router.push({ path: `/criterias/1/users`, query: { phase: selectedPhaseId } })"
         tooltip="Switch to Criterion View"
-        >
+      >
         <ArrowsRightLeftIcon class="h-5 w-5" />
-        </BaseButton>
+      </BaseButton>
     </div>
     
     <!-- Phase & User Selection -->
@@ -81,38 +81,59 @@
             />
           </label>
         </div>
-
-        <!-- Modal -->
-        <transition name="fade">
-          <div
-            v-if="showTextModal"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-          >
-            <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
-              <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                Text für {{ activeCriterion?.criterion.name }}
-              </h3>
-
-              <textarea
-                v-model="textDraft"
-                class="w-full border rounded-md p-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                rows="4"
-                placeholder="Enter text..."
-              ></textarea>
-
-              <div class="flex justify-between mt-6">
-                <BaseButton variant="cancel" @click="cancelText">Cancel</BaseButton>
-                <BaseButton @click="saveText">Save</BaseButton>
-              </div>
-            </div>
-          </div>
-        </transition>
       </div>
     </div>
 
     <p v-else class="text-gray-500 mt-4 text-center">
       No criteria assigned to this user.
     </p>
+
+    <!-- Modal -->
+    <transition name="fade">
+      <div
+        v-if="showTextModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      >
+        <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            Text für {{ activeCriterion?.criterion.name }}
+          </h3>
+
+          <!-- Textarea with search-history dropdown -->
+          <div class="relative">
+            <textarea
+              v-model="textDraft"
+              class="w-full border rounded-md p-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              @input="filterHistory"
+              @focus="isTextareaActive = true"
+              @blur="hideDropdown"
+              rows="4"
+              placeholder="Enter text..."
+            ></textarea>
+
+            <ul
+              v-if="isTextareaActive && filteredHistory.length"
+              class="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto"
+            >
+              <li
+                v-for="(item, index) in filteredHistory"
+                :key="index"
+                @mousedown.prevent="selectHistory(item)" 
+                class="p-2 hover:bg-gray-100 cursor-pointer"
+              >
+                {{ item }}
+              </li>
+            </ul>
+          </div>
+
+          <div class="flex justify-between mt-6">
+            <BaseButton variant="cancel" @click="cancelText">Cancel</BaseButton>
+            <BaseButton @click="saveText">Save</BaseButton>
+          </div>
+        </div>
+      </div>
+    </transition>
+
   </div>
 </template>
 
@@ -144,6 +165,8 @@ export default {
       showTextModal: false,
       activeCriterion: null,
       textDraft: "",
+      filteredHistory: [],
+      isTextareaActive: false,
       phase: null,
     };
   },
@@ -174,6 +197,27 @@ export default {
     },
   },
   methods: {
+    getStorageKey(criterionId) {
+      return `criterion_text_history_${criterionId}`;
+    },
+
+    filterHistory() {
+      const history = JSON.parse(localStorage.getItem(this.getStorageKey(this.activeCriterion.criterion_id))) || [];
+      const search = this.textDraft.toLowerCase();
+      this.filteredHistory = history.filter(entry => entry.toLowerCase().includes(search));
+    },
+
+    hideDropdown() {
+      setTimeout(() => {
+        this.isTextareaActive = false;
+      }, 100);
+    },
+
+    selectHistory(item) {
+      this.textDraft = item;
+      this.filteredHistory = [];
+    },
+
     async fetchSessions() {
       const res = await getSessions();
       this.sessions = res.data;
@@ -205,19 +249,14 @@ export default {
         a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
       );
     },
-    async changeUser() {
-      await this.fetchData(this.selectedUserId, this.selectedPhaseId);
-    },
-    async changePhase() {
-      await this.fetchData(this.selectedUserId, this.selectedPhaseId);
-    },
+
     async increment(criterionId) {
-      const crit = this.criteria.find((c) => c.criterion_id === criterionId);
+      const crit = this.criteria.find(c => c.criterion_id === criterionId);
       if (crit) crit.count_value = (crit.count_value || 0) + 1;
       await incrementUserCriterion(criterionId, this.selectedUserId, this.selectedPhaseId);
     },
     async decrement(criterionId) {
-      const crit = this.criteria.find((c) => c.criterion_id === criterionId);
+      const crit = this.criteria.find(c => c.criterion_id === criterionId);
       if (crit) crit.count_value = Math.max((crit.count_value || 0) - 1, 0);
       await decrementUserCriterion(criterionId, this.selectedUserId, this.selectedPhaseId);
     },
@@ -225,28 +264,45 @@ export default {
       const boolValue = value === true || value === "true";
       await setBooleanValue(criterionId, this.selectedUserId, this.selectedPhaseId, boolValue);
     },
+
     openTextModal(criterion) {
       this.activeCriterion = criterion;
       this.textDraft = criterion.text_value || "";
       this.showTextModal = true;
+      this.filterHistory();
     },
+
     cancelText() {
       this.showTextModal = false;
       this.activeCriterion = null;
       this.textDraft = "";
+      this.filteredHistory = [];
     },
+
+    saveTextToLocalStorage(text) {
+      const key = this.getStorageKey(this.activeCriterion.criterion_id);
+      let history = JSON.parse(localStorage.getItem(key)) || [];
+      history = history.filter(entry => entry !== text);
+      history.unshift(text);
+      localStorage.setItem(key, JSON.stringify(history.slice(0, 5)));
+    },
+
     async saveText() {
       if (!this.activeCriterion) return;
+
       await setTextValue(
         this.activeCriterion.criterion_id,
         this.selectedUserId,
         this.selectedPhaseId,
         this.textDraft
       );
+
       this.activeCriterion.text_value = this.textDraft;
+      this.saveTextToLocalStorage(this.textDraft);
       this.cancelText();
     },
   },
+
   async mounted() {
     await Promise.all([this.fetchSessions(), this.fetchUsers()]);
     await this.fetchData();
