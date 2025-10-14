@@ -13,17 +13,9 @@
         @click="isTreeCollapsed = !isTreeCollapsed"
         class="mb-4 p-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium w-full flex items-center justify-center gap-1"
       >
-        <ChevronLeftIcon
-          v-if="!isTreeCollapsed"
-          class="w-5 h-5"
-        />
-        <span v-if="!isTreeCollapsed">
-          Collapse
-        </span>
-        <ChevronRightIcon
-          v-else
-          class="w-5 h-5"
-        />
+        <ChevronLeftIcon v-if="!isTreeCollapsed" class="w-5 h-5" />
+        <span v-if="!isTreeCollapsed">Collapse</span>
+        <ChevronRightIcon v-else class="w-5 h-5" />
       </button>
 
       <!-- Tree only when expanded -->
@@ -69,7 +61,10 @@
         </p>
 
         <!-- Phase info -->
-        <div v-if="selectedItem.phases === undefined" class="mb-8 bg-gray-100 p-4 rounded-lg shadow-sm">
+        <div
+          v-if="selectedItem.phases === undefined"
+          class="mb-8 bg-gray-100 p-4 rounded-lg shadow-sm"
+        >
           <h4 class="text-lg font-semibold text-gray-700 mb-3">
             Phase: {{ selectedItem.title }}
           </h4>
@@ -77,18 +72,57 @@
             {{ selectedItem.description }}
           </p>
 
-          <!-- Criteria grid -->
-          <div
-            v-if="sortedCriteria(selectedItem).length"
-            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-          >
-            <div
-              v-for="uc in sortedCriteria(selectedItem)"
-              :key="uc.id"
-              class="flex justify-between items-center p-3 border rounded-lg shadow-sm bg-white"
-            >
-              <div class="flex flex-col">
-                <p class="text-gray-900 font-medium">
+          <!-- Criteria -->
+          <div v-if="sortedCriteria(selectedItem).length">
+            <!-- Non-text criteria grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              <div
+                v-for="uc in sortedCriteria(selectedItem).filter(c => c.criterion.type !== 'text')"
+                :key="uc.id"
+                class="flex justify-between items-center p-3 border rounded-lg shadow-sm bg-white"
+              >
+                <div class="flex flex-col">
+                  <p class="text-gray-900 font-medium">
+                    {{ uc.criterion.name }}
+                    <span
+                      class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full"
+                      :class="uc.criterion.weight === 0
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-emerald-100 text-emerald-700'"
+                    >
+                      Weight: {{ uc.criterion.weight }}
+                    </span>
+                  </p>
+                </div>
+
+                <div
+                  v-if="uc.criterion.type === 'countable'"
+                  class="text-gray-700 font-bold text-lg"
+                >
+                  {{ uc.count_value }}
+                </div>
+
+                <div v-else-if="uc.criterion.type === 'boolean'">
+                  <span
+                    class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium"
+                    :class="uc.is_fulfilled
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-gray-500'"
+                  >
+                    {{ uc.is_fulfilled ? 'Fulfilled' : 'Not fulfilled' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Text criteria full width -->
+            <div class="flex flex-col gap-4">
+              <div
+                v-for="uc in sortedCriteria(selectedItem).filter(c => c.criterion.type === 'text')"
+                :key="uc.id"
+                class="p-3 border rounded-lg shadow-sm bg-white"
+              >
+                <p class="text-gray-900 font-medium mb-2">
                   {{ uc.criterion.name }}
                   <span
                     class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full"
@@ -99,33 +133,9 @@
                     Weight: {{ uc.criterion.weight }}
                   </span>
                 </p>
-              </div>
 
-              <div v-if="uc.criterion.type === 'countable'" class="text-gray-700 font-bold text-lg">
-                {{ uc.count_value }}
-              </div>
-
-              <div v-else-if="uc.criterion.type === 'boolean'">
-                <span
-                  class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium"
-                  :class="uc.is_fulfilled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-gray-500'"
-                >
-                  {{ uc.is_fulfilled ? 'Fulfilled' : 'Not fulfilled' }}
-                </span>
-              </div>
-
-              <div v-else-if="uc.criterion.type === 'text'" class="w-full">
                 <div class="text-gray-800 whitespace-pre-wrap break-words">
-                  <p :class="{ 'line-clamp-3': !uc.showFull }">
-                    {{ uc.text_value || '—' }}
-                  </p>
-                  <button
-                    v-if="uc.text_value && uc.text_value.length > 100"
-                    @click="uc.showFull = !uc.showFull"
-                    class="text-indigo-600 hover:underline text-sm mt-1"
-                  >
-                    {{ uc.showFull ? 'Show less' : 'Show more' }}
-                  </button>
+                  {{ uc.text_value || '—' }}
                 </div>
               </div>
             </div>
@@ -138,7 +148,6 @@
       <p v-else class="text-gray-500 text-center mt-8">
         Select a session or phase from the tree.
       </p>
-
     </main>
   </div>
 </template>
@@ -147,7 +156,7 @@
 import BaseSelect from "../BaseComponents/BaseSelect.vue";
 import PhaseTree from "../BaseComponents/PhaseTree.vue";
 import { getUser, getUserEvaluation, getUsers } from "../../api/users";
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/solid';
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/24/solid";
 
 export default {
   components: { BaseSelect, PhaseTree, ChevronLeftIcon, ChevronRightIcon },
@@ -172,11 +181,19 @@ export default {
   methods: {
     sortedCriteria(item) {
       if (!item.userCriteria) return [];
-      return [...item.userCriteria].sort((a, b) =>
-        a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
+      
+      const relevantCriteria = item.userCriteria.filter(
+        (uc) => !uc.criterion.phase_id || uc.criterion.phase_id === item.id
       );
-    },
 
+      return [...relevantCriteria].sort((a, b) => {
+        const order = { countable: 1, boolean: 2, text: 3 };
+        if (order[a.criterion.type] !== order[b.criterion.type]) {
+          return order[a.criterion.type] - order[b.criterion.type];
+        }
+        return a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" });
+      });
+    },
     async fetchUserData(userId) {
       try {
         const [userRes, evalRes] = await Promise.all([
@@ -208,9 +225,9 @@ export default {
 
     handleSelect(item, type) {
       this.selectedItem = item;
-      if (type === 'phase') {
+      if (type === "phase") {
         this.selectedSession = this.findSession(item.id);
-      } else if (type === 'session') {
+      } else if (type === "session") {
         this.selectedSession = item;
       }
     },
@@ -239,12 +256,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.line-clamp-3 {
-  display: -webkit-box;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-</style>
