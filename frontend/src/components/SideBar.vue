@@ -59,6 +59,16 @@
                 <span class="ml-2">Create</span>
               </router-link>
             </li>
+            <li>
+              <router-link
+                to="/users/files"
+                class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
+                active-class="bg-gray-300 font-semibold"
+              >
+                <ArrowUpTrayIcon class="w-5 h-5 flex-shrink-0" />
+                <span class="ml-2">Files</span>
+              </router-link>
+            </li>
           </ul>
         </li>
 
@@ -189,6 +199,7 @@ import {
   ListBulletIcon,
   PlusIcon,
   ArrowRightOnRectangleIcon,
+  ArrowUpTrayIcon 
 } from "@heroicons/vue/24/outline";
 
 const router = useRouter();

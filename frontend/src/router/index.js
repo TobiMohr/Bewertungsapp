@@ -9,6 +9,7 @@ import UserList from "../components/UserComponents/UserList.vue";
 import UserForm from "../components/UserComponents/UserForm.vue";
 import UserDetail from "../components/UserComponents/UserDetail.vue";
 import UserEvaluation from "@/components/UserComponents/UserEvaluation.vue";
+import UserFiles from "@/components/UserComponents/UserFiles.vue";
 
 // Criterias
 import CriteriaList from "@/components/CriteriaComponents/CriteriaList.vue";
@@ -23,6 +24,8 @@ import SessionEdit from "@/components/SessionComponents/SessionEdit.vue";
 // Phases
 import PhaseDetail from "@/components/PhaseComponents/PhaseDetail.vue";
 import PhaseForm from "@/components/PhaseComponents/PhaseForm.vue";
+
+
 
 const routes = [
   { path: "/", redirect: "/users" },
@@ -51,6 +54,10 @@ const routes = [
     path: "/users/:id/evaluation",
     component: UserEvaluation,
     props: true,
+  },
+  {
+    path: "/users/files",
+    component: UserFiles,
   },
 
   // Criterias
