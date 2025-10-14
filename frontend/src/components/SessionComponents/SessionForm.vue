@@ -117,7 +117,7 @@ export default {
         };
 
         await createSession(payload);
-        this.$router.push("/");
+        this.$router.push("/sessions");
       } catch (err) {
         alert(err.response?.data?.detail || "Failed to create session");
       }
