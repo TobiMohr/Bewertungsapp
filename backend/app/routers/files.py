@@ -144,7 +144,11 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
         if "Criteria" in xls.sheet_names:
             df_criteria = pd.read_excel(xls, sheet_name="Criteria")
             for _, row in df_criteria.iterrows():
-                existing = db.query(models.Criterion).filter_by(name=row["name"]).first()
+                existing = (
+                    db.query(models.Criterion)
+                    .filter_by(name=row["name"], type=row["type"])
+                    .first()
+                )
                 if existing:
                     criterion_id_map[int(row["id"])] = existing.id
                     continue
@@ -161,7 +165,11 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
         if "Sessions" in xls.sheet_names:
             df_sessions = pd.read_excel(xls, sheet_name="Sessions")
             for _, row in df_sessions.iterrows():
-                existing = db.query(models.Session).filter_by(title=row["title"]).first()
+                existing = (
+                    db.query(models.Session)
+                    .filter_by(title=row["title"], description=row.get("description"))
+                    .first()
+                )
                 if existing:
                     session_id_map[int(row["id"])] = existing.id
                     continue
@@ -178,14 +186,19 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
         if "Phases" in xls.sheet_names:
             df_phases = pd.read_excel(xls, sheet_name="Phases")
             for _, row in df_phases.iterrows():
-                existing = db.query(models.Phase).filter_by(title=row["title"]).first()
+                session_ref = session_id_map[int(row["session_id"])]
+                existing = (
+                    db.query(models.Phase)
+                    .filter_by(title=row["title"], session_id=session_ref)
+                    .first()
+                )
                 if existing:
                     phase_id_map[int(row["id"])] = existing.id
                     continue
                 new_p = models.Phase(
                     title=row["title"],
                     description=row.get("description"),
-                    session_id=session_id_map[int(row["session_id"])]
+                    session_id=session_ref
                 )
                 db.add(new_p)
                 db.flush()
@@ -196,6 +209,14 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
         if "PhaseCriteria" in xls.sheet_names:
             df_pc = pd.read_excel(xls, sheet_name="PhaseCriteria")
             for _, row in df_pc.iterrows():
+
+                existing = db.query(models.PhaseCriterion).filter_by(
+                    phase_id=phase_id_map[int(row["phase_id"])],
+                    criterion_id=criterion_id_map[int(row["criterion_id"])]
+                ).first()
+
+                if existing:
+                    continue
                 db.add(models.PhaseCriterion(
                     phase_id=phase_id_map[int(row["phase_id"])],
                     criterion_id=criterion_id_map[int(row["criterion_id"])],
@@ -215,6 +236,14 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
             df_uc["text_value"] = df_uc["text_value"].astype(str).replace("nan", None)
 
             for _, row in df_uc.iterrows():
+                existing = db.query(models.UserCriterion).filter_by(
+                    user_id=row["user_id"],
+                    criterion_id=row["criterion_id"],
+                    phase_id=row["phase_id"]
+                ).first()
+
+                if existing:
+                    continue
                 db.add(models.UserCriterion(
                     user_id=row["user_id"],
                     criterion_id=row["criterion_id"],
