@@ -1,72 +1,83 @@
 <template>
-  <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-gray-800">
-        Evaluation for {{ user?.first_name }} {{ user?.last_name }}
-      </h2>
-    </div>
+  <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md flex gap-6">
 
-    <!-- User selector -->
-    <div class="mb-6 w-full md:w-1/3">
-      <label class="block mb-2 font-semibold">Select User</label>
-      <BaseSelect
-        v-model="selectedUserId"
-        :options="userOptions"
-        placeholder="-- Select User --"
-      />
-    </div>
+    <!-- Collapsible sidebar -->
+    <aside
+      :class="[
+        'transition-all duration-300 bg-gray-50 p-4 rounded-lg border overflow-y-auto',
+        isTreeCollapsed ? 'w-16' : 'w-1/4'
+      ]"
+    >
+      <!-- Toggle Button -->
+      <button
+        @click="isTreeCollapsed = !isTreeCollapsed"
+        class="mb-4 p-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium w-full flex items-center justify-center gap-1"
+      >
+        <ChevronLeftIcon v-if="!isTreeCollapsed" class="w-5 h-5" />
+        <span v-if="!isTreeCollapsed">Collapse</span>
+        <ChevronRightIcon v-else class="w-5 h-5" />
+      </button>
 
-    <!-- Tabs: Sessions -->
-    <div v-if="sessions.length">
-      <!-- Tab bar -->
-      <div class="flex flex-wrap border-b mb-6">
-        <button
-          v-for="(session, index) in sessions"
-          :key="session.id"
-          @click="activeSession = index"
-          class="py-2 px-4 font-medium text-sm rounded-t-lg transition-colors duration-150"
-          :class="[activeSession === index
-            ? 'bg-emerald-500 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200']"
-        >
-          {{ session.title }}
-        </button>
+      <!-- Tree only when expanded -->
+      <div v-if="!isTreeCollapsed">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Sessions</h3>
+        <PhaseTree
+          :items="sessions"
+          :activeId="selectedItem?.id"
+          @select="handleSelect"
+        />
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 overflow-hidden">
+
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold text-gray-800">
+          Evaluation for {{ user?.first_name }} {{ user?.last_name }}
+        </h2>
       </div>
 
-      <!-- Active session content -->
-      <div v-if="sessions[activeSession]" class="space-y-8">
-        <div class="border-t pt-6 first:border-t-0 first:pt-0">
-          <h3 class="text-xl font-semibold text-gray-800 mb-3">
-            {{ sessions[activeSession].title }}
-          </h3>
-          <p
-            v-if="sessions[activeSession].description"
-            class="text-gray-600 mb-4"
-          >
-            {{ sessions[activeSession].description }}
+      <!-- User selector -->
+      <div class="mb-6 w-full md:w-1/3">
+        <label class="block mb-2 font-semibold">Select User</label>
+        <BaseSelect
+          v-model="selectedUserId"
+          :options="userOptions"
+          placeholder="-- Select User --"
+        />
+      </div>
+
+      <!-- Main session & phase display -->
+      <div v-if="selectedItem">
+
+        <!-- Session info -->
+        <h3 v-if="selectedSession" class="text-xl font-semibold text-gray-800 mb-2">
+          Session: {{ selectedSession.title }}
+        </h3>
+        <p v-if="selectedSession?.description" class="text-gray-600 mb-4">
+          {{ selectedSession.description }}
+        </p>
+
+        <!-- Phase info -->
+        <div
+          v-if="selectedItem.phases === undefined"
+          class="mb-8 bg-gray-100 p-4 rounded-lg shadow-sm"
+        >
+          <h4 class="text-lg font-semibold text-gray-700 mb-3">
+            Phase: {{ selectedItem.title }}
+          </h4>
+          <p v-if="selectedItem.description" class="text-gray-500 mb-3">
+            {{ selectedItem.description }}
           </p>
 
-          <!-- Phases of the active session -->
-          <div
-            v-for="phase in sessions[activeSession].phases"
-            :key="phase.id"
-            class="mb-8 bg-gray-50 p-4 rounded-lg shadow-sm"
-          >
-            <h4 class="text-lg font-semibold text-gray-700 mb-3">
-              {{ phase.title }}
-            </h4>
-            <p v-if="phase.description" class="text-gray-500 mb-3">
-              {{ phase.description }}
-            </p>
-
-            <!-- Criteria grid -->
-            <div
-              v-if="sortedCriteria(phase).length"
-              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-            >
+          <!-- Criteria -->
+          <div v-if="sortedCriteria(selectedItem).length">
+            <!-- Non-text criteria grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               <div
-                v-for="uc in sortedCriteria(phase)"
+                v-for="uc in sortedCriteria(selectedItem).filter(c => c.criterion.type !== 'text')"
                 :key="uc.id"
                 class="flex justify-between items-center p-3 border rounded-lg shadow-sm bg-white"
               >
@@ -94,48 +105,70 @@
                 <div v-else-if="uc.criterion.type === 'boolean'">
                   <span
                     class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium"
-                    :class="uc.is_fulfilled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-gray-500'"
+                    :class="uc.is_fulfilled
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-gray-500'"
                   >
                     {{ uc.is_fulfilled ? 'Fulfilled' : 'Not fulfilled' }}
                   </span>
                 </div>
+              </div>
+            </div>
 
-                <div
-                  v-else-if="uc.criterion.type === 'text'"
-                  class="text-gray-600 text-sm italic truncate max-w-[180px]"
-                >
+            <!-- Text criteria full width -->
+            <div class="flex flex-col gap-4">
+              <div
+                v-for="uc in sortedCriteria(selectedItem).filter(c => c.criterion.type === 'text')"
+                :key="uc.id"
+                class="p-3 border rounded-lg shadow-sm bg-white"
+              >
+                <p class="text-gray-900 font-medium mb-2">
+                  {{ uc.criterion.name }}
+                  <span
+                    class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full"
+                    :class="uc.criterion.weight === 0
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-emerald-100 text-emerald-700'"
+                  >
+                    Weight: {{ uc.criterion.weight }}
+                  </span>
+                </p>
+
+                <div class="text-gray-800 whitespace-pre-wrap break-words">
                   {{ uc.text_value || '—' }}
                 </div>
               </div>
             </div>
-
-            <p v-else class="text-gray-500 text-center">
-              No criteria for this phase.
-            </p>
           </div>
+
+          <p v-else class="text-gray-500 text-center">No criteria for this phase.</p>
         </div>
       </div>
-    </div>
 
-    <p v-else class="text-gray-500 text-center mt-8">
-      No sessions found for this user.
-    </p>
+      <p v-else class="text-gray-500 text-center mt-8">
+        Select a session or phase from the tree.
+      </p>
+    </main>
   </div>
 </template>
 
 <script>
 import BaseSelect from "../BaseComponents/BaseSelect.vue";
+import PhaseTree from "../BaseComponents/PhaseTree.vue";
 import { getUser, getUserEvaluation, getUsers } from "../../api/users";
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/24/solid";
 
 export default {
-  components: { BaseSelect },
+  components: { BaseSelect, PhaseTree, ChevronLeftIcon, ChevronRightIcon },
   data() {
     return {
       user: null,
       sessions: [],
-      activeSession: 0,
+      selectedItem: null,
+      selectedSession: null,
       selectedUserId: null,
       userOptions: [],
+      isTreeCollapsed: false,
     };
   },
   watch: {
@@ -146,13 +179,21 @@ export default {
     },
   },
   methods: {
-    sortedCriteria(phase) {
-      if (!phase.userCriteria) return [];
-      return [...phase.userCriteria].sort((a, b) =>
-        a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
+    sortedCriteria(item) {
+      if (!item.userCriteria) return [];
+      
+      const relevantCriteria = item.userCriteria.filter(
+        (uc) => !uc.criterion.phase_id || uc.criterion.phase_id === item.id
       );
-    },
 
+      return [...relevantCriteria].sort((a, b) => {
+        const order = { countable: 1, boolean: 2, text: 3 };
+        if (order[a.criterion.type] !== order[b.criterion.type]) {
+          return order[a.criterion.type] - order[b.criterion.type];
+        }
+        return a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" });
+      });
+    },
     async fetchUserData(userId) {
       try {
         const [userRes, evalRes] = await Promise.all([
@@ -161,7 +202,10 @@ export default {
         ]);
         this.user = userRes.data;
         this.sessions = evalRes.data;
-        this.activeSession = 0;
+
+        // default selection
+        this.selectedItem = this.sessions[0] || null;
+        this.selectedSession = this.selectedItem || null;
       } catch (err) {
         console.error("Failed to fetch user data:", err);
       }
@@ -178,10 +222,32 @@ export default {
         console.error("Failed to fetch users:", err);
       }
     },
+
+    handleSelect(item, type) {
+      this.selectedItem = item;
+      if (type === "phase") {
+        this.selectedSession = this.findSession(item.id);
+      } else if (type === "session") {
+        this.selectedSession = item;
+      }
+    },
+
+    findSession(id) {
+      const find = (nodes, parentSession = null) => {
+        for (const node of nodes) {
+          if (node.id === id) return parentSession || node;
+          if (node.phases?.length) {
+            const found = find(node.phases, parentSession || node);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      return find(this.sessions);
+    },
   },
   async mounted() {
     await this.fetchUsers();
-
     const userId = this.$route.params.id;
     if (userId) {
       this.selectedUserId = userId.toString();
@@ -190,9 +256,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-button {
-  transition: all 0.2s ease;
-}
-</style>

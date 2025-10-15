@@ -2,17 +2,18 @@
   <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
     <!-- Header with button inline -->
     <div class="flex items-center justify-between mb-4">
-        <h2 class="text-2xl font-bold text-gray-800">
+      <h2 class="text-2xl font-bold text-gray-800">
         {{ criterion?.name }} — Edit for All Users
-        </h2>
+      </h2>
 
-        <BaseButton
+      <BaseButton
         variant="switch"
+        :disabled="!userCriteria.length"
         @click="$router.push({ path: `/users/${userCriteria[0]?.user?.id}`, query: { phase: selectedPhaseId } })"
         tooltip="Switch to User View"
-        >
+      >
         <ArrowsRightLeftIcon class="h-5 w-5" />
-        </BaseButton>
+      </BaseButton>
     </div>
 
     <!-- Phase & Criterion Selection -->
@@ -84,15 +85,31 @@
                 />
               </div>
 
-              <!-- Text -->
-              <div v-else-if="criterion?.type === 'text'">
-                <input
-                  type="text"
+              <!-- Text with history -->
+              <div v-else-if="criterion?.type === 'text'" class="relative">
+                <textarea
                   v-model="uc.text_value"
-                  @blur="updateText(uc)"
-                  class="border rounded-md p-1 w-full text-gray-700"
+                  @input="filterHistory(uc)"
+                  @focus="uc.isTextareaActive = true"
+                  @blur="() => { hideDropdown(uc); updateText(uc); }"
+                  class="border rounded-md p-2 w-full text-gray-700 resize-y"
                   placeholder="Enter text..."
+                  rows="3"
                 />
+
+                <ul
+                  v-if="uc.isTextareaActive && uc.filteredHistory?.length"
+                  class="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto"
+                >
+                  <li
+                    v-for="(item, index) in uc.filteredHistory"
+                    :key="index"
+                    @mousedown.prevent="selectHistory(uc, item)"
+                    class="p-2 hover:bg-gray-100 cursor-pointer"
+                  >
+                    {{ item }}
+                  </li>
+                </ul>
               </div>
             </td>
           </tr>
@@ -122,7 +139,7 @@ import {
 import { getSessions } from "../../api/sessions";
 
 export default {
-  components: { BaseSelect, BaseButton, PlusIcon, MinusIcon, ArrowsRightLeftIcon     },
+  components: { BaseSelect, BaseButton, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
   data() {
     return {
       criterion: null,
@@ -135,18 +152,12 @@ export default {
   },
   computed: {
     criterionOptions() {
-      return this.criterias.map((c) => ({
-        value: c.id.toString(),
-        label: c.name,
-      }));
+      return this.criterias.map((c) => ({ value: c.id.toString(), label: c.name }));
     },
     phaseGroups() {
       return this.sessions.map((session) => ({
         label: session.title,
-        options: session.phases.map((p) => ({
-          value: p.id.toString(),
-          label: p.title,
-        })),
+        options: session.phases.map((p) => ({ value: p.id.toString(), label: p.title })),
       }));
     },
   },
@@ -173,14 +184,16 @@ export default {
         return;
       }
 
-      const res = await getUserCriteriasForCriterion(
-        this.selectedCriterionId,
-        this.selectedPhaseId
-      );
-      this.userCriteria = res.data;
-      this.criterion = this.criterias.find(
-        (c) => c.id.toString() === this.selectedCriterionId
-      );
+      const res = await getUserCriteriasForCriterion(this.selectedCriterionId, this.selectedPhaseId);
+
+      this.userCriteria = res.data.map((uc) => ({
+        ...uc,
+        filteredHistory: [],
+        isTextareaActive: false,
+        text_value: uc.text_value || "",
+      }));
+
+      this.criterion = this.criterias.find((c) => c.id.toString() === this.selectedCriterionId);
     },
     async updateCount(uc, delta) {
       const newValue = (uc.count_value || 0) + delta;
@@ -191,20 +204,40 @@ export default {
         await decrementUserCriterion(this.selectedCriterionId, uc.user.id, this.selectedPhaseId);
     },
     async updateBoolean(uc) {
-      await setBooleanValue(
-        this.selectedCriterionId,
-        uc.user.id,
-        this.selectedPhaseId,
-        uc.is_fulfilled
+      await setBooleanValue(this.selectedCriterionId, uc.user.id, this.selectedPhaseId, uc.is_fulfilled);
+    },
+
+    // --- Textarea History ---
+    getStorageKey() {
+      return `criterion_text_history_${this.selectedCriterionId}`;
+    },
+    filterHistory(uc) {
+      const history = JSON.parse(localStorage.getItem(this.getStorageKey())) || [];
+      const search = (uc.text_value || "").toLowerCase();
+      uc.filteredHistory = history.filter((entry) =>
+        entry.toLowerCase().includes(search)
       );
     },
+    hideDropdown(uc) {
+      setTimeout(() => {
+        uc.isTextareaActive = false;
+      }, 100);
+    },
+    selectHistory(uc, text) {
+      uc.text_value = text;
+      uc.filteredHistory = [];
+    },
+    saveTextToLocalStorage(uc) {
+      const key = this.getStorageKey();
+      let history = JSON.parse(localStorage.getItem(key)) || [];
+      history = history.filter((entry) => entry !== uc.text_value); // remove duplicates
+      history.unshift(uc.text_value);
+      localStorage.setItem(key, JSON.stringify(history.slice(0, 5))); // keep last 5
+    },
     async updateText(uc) {
-      await setTextValue(
-        this.selectedCriterionId,
-        uc.user.id,
-        this.selectedPhaseId,
-        uc.text_value || ""
-      );
+      if (!uc.text_value) return;
+      await setTextValue(this.selectedCriterionId, uc.user.id, this.selectedPhaseId, uc.text_value);
+      this.saveTextToLocalStorage(uc);
     },
   },
   async mounted() {

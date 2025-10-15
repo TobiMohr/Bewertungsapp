@@ -161,6 +161,25 @@
             </li>
           </ul>
         </li>
+
+        <!-- Files menu (NEW MAIN ENTRY) -->
+        <li>
+          <router-link
+            to="/files"
+            class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
+            active-class="bg-gray-300 font-semibold"
+          >
+            <ArrowUpTrayIcon class="w-5 h-5 flex-shrink-0" />
+            <span
+              :class="[
+                'ml-2 whitespace-nowrap transition-opacity duration-200',
+                sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'
+              ]"
+            >
+              Files 
+            </span>
+          </router-link>
+        </li>
       </ul>
     </nav>
 
@@ -189,6 +208,7 @@ import {
   ListBulletIcon,
   PlusIcon,
   ArrowRightOnRectangleIcon,
+  ArrowUpTrayIcon 
 } from "@heroicons/vue/24/outline";
 
 const router = useRouter();

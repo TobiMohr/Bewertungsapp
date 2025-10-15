@@ -67,20 +67,6 @@ def create_criterion(payload: CriterionCreate, session: Session = Depends(get_db
     session.commit()
     session.refresh(new_crit)
 
-    # Assign to every user and phase
-    users = session.query(User).all()
-    phases = session.query(Phase).all()
-    for user in users:
-        for phase in phases:
-            exists = session.query(UserCriterion).filter_by(
-                user_id=user.id,
-                criterion_id=new_crit.id,
-                phase_id=phase.id
-            ).first()
-            if not exists:
-                session.add(UserCriterion(user_id=user.id, criterion_id=new_crit.id, phase_id=phase.id))
-    session.commit()
-
     return new_crit
 
 

@@ -24,6 +24,11 @@ import SessionEdit from "@/components/SessionComponents/SessionEdit.vue";
 import PhaseDetail from "@/components/PhaseComponents/PhaseDetail.vue";
 import PhaseForm from "@/components/PhaseComponents/PhaseForm.vue";
 
+//Files
+import FileExports from "@/components/FileComponents/FileExports.vue";
+
+
+
 const routes = [
   { path: "/", redirect: "/users" },
   { path: "/login", component: LoginForm },
@@ -91,6 +96,11 @@ const routes = [
   {
     path: "/phases/create",
     component: PhaseForm,
+  },
+  // Files
+  {
+    path: "/files",
+    component: FileExports,
   },
 ];
 
