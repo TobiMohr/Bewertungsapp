@@ -12,11 +12,13 @@ class PhaseBase(BaseModel):
 # --- Phase creation ---
 class PhaseCreate(PhaseBase):
     session_id: Optional[int] = None
+    parent_id: Optional[int] = None
     criteria: Optional[List[CriterionWithWeightCreate]] = []
 
 # --- Phase update ---
 class PhaseUpdate(PhaseBase):
     criteria: Optional[List[CriterionWithWeightCreate]] = None
+    parent_id: Optional[int] = None
 
 # --- Phase read ---
 class PhaseRead(PhaseBase):
@@ -24,7 +26,12 @@ class PhaseRead(PhaseBase):
     created_at: datetime
     updated_at: datetime
     session_id: Optional[int]
+    parent_id: Optional[int]
     criteria: List[CriterionWithWeightRead] = []
+    children: List["PhaseRead"] = []
 
     class Config:
         orm_mode = True
+
+# Required for self-referencing models
+PhaseRead.model_rebuild()

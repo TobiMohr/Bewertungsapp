@@ -38,7 +38,8 @@ def create_user_criteria_for_phase(db: Session, phase: Phase):
 @router.get("/{phase_id}", response_model=PhaseRead)
 def get_phase(phase_id: int, db: Session = Depends(get_db)):
     phase = db.query(Phase).options(
-        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion)
+        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion),
+        joinedload(Phase.children)  # eager-load children recursively
     ).filter(Phase.id == phase_id).first()
 
     if not phase:
@@ -59,6 +60,7 @@ def create_phase(
     # Create the phase
     phase = Phase(
         session_id=payload.session_id,
+        parent_id=payload.parent_id,
         title=payload.title,
         description=payload.description,
     )
@@ -83,7 +85,8 @@ def create_phase(
 
     # Reload with relations
     phase = db.query(Phase).options(
-        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion)
+        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion),
+        joinedload(Phase.children)
     ).filter(Phase.id == phase.id).first()
 
     return phase_to_dict(phase)
@@ -92,7 +95,8 @@ def create_phase(
 @router.put("/{phase_id}", response_model=PhaseRead)
 def update_phase(phase_id: int, payload: PhaseUpdate, db: Session = Depends(get_db)):
     phase = db.query(Phase).options(
-        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion)
+        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion),
+        joinedload(Phase.children)
     ).filter(Phase.id == phase_id).first()
 
     if not phase:
@@ -100,11 +104,11 @@ def update_phase(phase_id: int, payload: PhaseUpdate, db: Session = Depends(get_
 
     phase.title = payload.title
     phase.description = payload.description
+    phase.parent_id = payload.parent_id
 
     # Extract new criteria
     new_criteria = payload.criteria or []
 
-    # Merge criteria (same logic as sessions)
     existing_assoc = {assoc.criterion_id: assoc for assoc in phase.phase_criteria_assoc}
     for crit in new_criteria:
         if crit.id in existing_assoc:
@@ -126,16 +130,18 @@ def update_phase(phase_id: int, payload: PhaseUpdate, db: Session = Depends(get_
 
     # Reload with relations
     phase = db.query(Phase).options(
-        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion)
+        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion),
+        joinedload(Phase.children)
     ).filter(Phase.id == phase_id).first()
 
     return phase_to_dict(phase)
 
 @router.post("/{phase_id}/copy", response_model=PhaseRead)
 def copy_phase(phase_id: int, payload: dict, db: Session = Depends(get_db)):
-    """Duplicate a phase (title + metadata + criteria)."""
+    """Duplicate a phase (title + metadata + criteria + optionally children)."""
     phase = db.query(Phase).options(
-        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion)
+        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion),
+        joinedload(Phase.children)
     ).filter(Phase.id == phase_id).first()
 
     if not phase:
@@ -147,6 +153,7 @@ def copy_phase(phase_id: int, payload: dict, db: Session = Depends(get_db)):
 
     copied_phase = Phase(
         session_id=phase.session_id,
+        parent_id=phase.parent_id,
         title=new_title,
         description=phase.description
     )
@@ -167,11 +174,11 @@ def copy_phase(phase_id: int, payload: dict, db: Session = Depends(get_db)):
     create_user_criteria_for_phase(db, copied_phase)
 
     copied_phase = db.query(Phase).options(
-        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion)
+        joinedload(Phase.phase_criteria_assoc).joinedload(PhaseCriterion.criterion),
+        joinedload(Phase.children)
     ).filter(Phase.id == copied_phase.id).first()
 
     return phase_to_dict(copied_phase)
-
 
 
 def phase_to_dict(phase: Phase) -> dict:
@@ -180,6 +187,7 @@ def phase_to_dict(phase: Phase) -> dict:
         "title": phase.title,
         "description": phase.description,
         "session_id": phase.session_id,
+        "parent_id": phase.parent_id,
         "created_at": phase.created_at,
         "updated_at": phase.updated_at,
         "criteria": [
@@ -188,5 +196,6 @@ def phase_to_dict(phase: Phase) -> dict:
                 "weight": pc.weight
             }
             for pc in phase.phase_criteria_assoc
-        ]
+        ],
+        "children": [phase_to_dict(child) for child in phase.children]  # recursive
     }

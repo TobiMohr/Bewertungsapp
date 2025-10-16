@@ -86,7 +86,8 @@ def get_sessions(db: Session = Depends(get_db)):
     sessions = db.query(SessionModel).options(
         joinedload(SessionModel.phases)
         .joinedload(Phase.phase_criteria_assoc)
-        .joinedload(PhaseCriterion.criterion)
+        .joinedload(PhaseCriterion.criterion),
+        joinedload(SessionModel.phases).joinedload(Phase.children)
     ).all()
     return [session_to_dict(s) for s in sessions]
 
@@ -96,7 +97,8 @@ def get_session(session_id: int, db: Session = Depends(get_db)):
     db_session = db.query(SessionModel).options(
         joinedload(SessionModel.phases)
         .joinedload(Phase.phase_criteria_assoc)
-        .joinedload(PhaseCriterion.criterion)
+        .joinedload(PhaseCriterion.criterion),
+        joinedload(SessionModel.phases).joinedload(Phase.children)
     ).filter(SessionModel.id == session_id).first()
 
     if not db_session:
@@ -121,7 +123,8 @@ def update_session(session_id: int, payload: SessionUpdate, db: Session = Depend
     db_session = db.query(SessionModel).options(
         joinedload(SessionModel.phases)
         .joinedload(Phase.phase_criteria_assoc)
-        .joinedload(PhaseCriterion.criterion)
+        .joinedload(PhaseCriterion.criterion),
+        joinedload(SessionModel.phases).joinedload(Phase.children)
     ).filter(SessionModel.id == session_id).first()
 
     return session_to_dict(db_session)
@@ -144,23 +147,26 @@ def session_to_dict(session: SessionModel) -> dict:
         "description": session.description,
         "created_at": session.created_at,
         "updated_at": session.updated_at,
-        "phases": [
-            {
-                "id": phase.id,
-                "title": phase.title,
-                "description": phase.description,
-                "session_id": phase.session_id,
-                "created_at": phase.created_at,
-                "updated_at": phase.updated_at,
-                "criteria": [
-                    {
-                        "criterion": pc.criterion,
-                        "weight": pc.weight
-                    }
-                    for pc in phase.phase_criteria_assoc
-                ]
-            }
-            for phase in session.phases
-        ]
+        "phases": [phase_to_dict(phase) for phase in session.phases if phase.parent_id is None]  # only top-level phases
     }
+
+def phase_to_dict(phase: Phase) -> dict:
+    return {
+        "id": phase.id,
+        "title": phase.title,
+        "description": phase.description,
+        "session_id": phase.session_id,
+        "parent_id": phase.parent_id,
+        "created_at": phase.created_at,
+        "updated_at": phase.updated_at,
+        "criteria": [
+            {
+                "criterion": pc.criterion,
+                "weight": pc.weight
+            }
+            for pc in phase.phase_criteria_assoc
+        ],
+        "children": [phase_to_dict(child) for child in phase.children]  # recursive
+    }
+
 

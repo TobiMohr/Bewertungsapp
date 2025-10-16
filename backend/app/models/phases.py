@@ -15,6 +15,7 @@ class Phase(Base):
     title = Column(String, nullable=False, default="Gesamtsession")
     description = Column(String, nullable=True)
     session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False)
+    parent_id = Column(Integer, ForeignKey("phases.id"), nullable=True)
 
     created_at = Column(
         String, 
@@ -26,16 +27,30 @@ class Phase(Base):
         onupdate=lambda: datetime.now(timezone.utc).isoformat()
     )
 
+    # Relationships
     session = relationship("Session", back_populates="phases")
 
-    # Relationships
+    parent = relationship(
+        "Phase",
+        remote_side=[id],
+        back_populates="children"
+    )
+    children = relationship(
+        "Phase",
+        back_populates="parent",
+        cascade="all, delete-orphan"
+    )
+
+    # Other existing relationships
     criteria = relationship(
         "Criterion", secondary="phase_criteria_association", back_populates="phases"
     )
     phase_criteria_assoc = relationship(
         "PhaseCriterion", back_populates="phase", cascade="all, delete-orphan"
     )
-    user_criteria = relationship("UserCriterion", back_populates="phase", cascade="all, delete-orphan")
+    user_criteria = relationship(
+        "UserCriterion", back_populates="phase", cascade="all, delete-orphan"
+    )
 
 # --- Association table between Phase and Criterion ---
 class PhaseCriterion(Base):
