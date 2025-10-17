@@ -7,7 +7,8 @@
 ### 2. Create environment files
 
 <pre lang="md"><code>cp .env.example .env
-cp frontend/.env.example frontend/.env </code></pre>
+cp frontend/.env.example frontend/.env
+cp frontend/.env.local.example frontend/.env.local</code></pre>
 
 ### 3. Build and start the containers with docker compose
 
