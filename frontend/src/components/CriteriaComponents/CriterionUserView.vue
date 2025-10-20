@@ -155,9 +155,20 @@ export default {
       return this.criterias.map((c) => ({ value: c.id.toString(), label: c.name }));
     },
     phaseGroups() {
+      // Flatten phases recursively with indentation
+      const flattenPhases = (phases, depth = 0) => {
+        return phases.flatMap((phase) => [
+          {
+            value: phase.id.toString(),
+            label: `${"— ".repeat(depth)}${phase.title}`,
+          },
+          ...(phase.children?.length ? flattenPhases(phase.children, depth + 1) : []),
+        ]);
+      };
+
       return this.sessions.map((session) => ({
         label: session.title,
-        options: session.phases.map((p) => ({ value: p.id.toString(), label: p.title })),
+        options: flattenPhases(session.phases || []),
       }));
     },
   },

@@ -1,12 +1,9 @@
 <template>
   <div class="max-w-2xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
-    
-    <!-- Header with Edit & Copy buttons aligned right -->
+    <!-- Header with Edit & Copy buttons -->
     <div class="flex items-center justify-between mb-6">
-      <!-- Title on the left -->
       <h2 class="text-2xl font-bold text-gray-800">Edit Phase</h2>
 
-      <!-- Buttons on the right -->
       <div class="flex items-center space-x-3">
         <!-- Edit Phase Button -->
         <BaseButton
@@ -90,7 +87,34 @@
       </div>
     </div>
 
-    <!-- Copy Phase Dialog using BaseDialog -->
+    <!-- Child Phases Section -->
+    <div class="mt-8">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-800">Sub-Phases</h3>
+        <BaseButton
+          @click="$router.push({ path: '/phases/create', query: { sessionId: phase.session_id, parentId: phase.id } })"
+        >
+          Add Sub-Phase
+        </BaseButton>
+      </div>
+
+      <ul v-if="phase.children && phase.children.length" class="divide-y divide-gray-200">
+        <li
+          v-for="child in phase.children"
+          :key="child.id"
+          class="py-3 cursor-pointer hover:bg-gray-50 px-2 rounded"
+          @click="$router.push(`/phases/${child.id}`)"
+        >
+          <div class="flex items-center justify-between">
+            <span class="font-medium text-gray-700 hover:underline">{{ child.title }}</span>
+            <p class="text-gray-500 text-sm">{{ child.description }}</p>
+          </div>
+        </li>
+      </ul>
+      <p v-else class="text-gray-500 text-sm italic">No sub-phases yet.</p>
+    </div>
+
+    <!-- Copy Phase Dialog -->
     <BaseDialog v-if="showCopyDialog" @close="showCopyDialog = false">
       <template #title>Copy Phase</template>
 
@@ -116,7 +140,7 @@
       </template>
     </BaseDialog>
 
-    <!-- Edit Phase Modal (only title & description) -->
+    <!-- Edit Phase Modal -->
     <BaseDialog v-if="showEditModal" @close="showEditModal = false">
       <template #title>Edit Phase</template>
 
@@ -238,46 +262,57 @@ export default {
           criteria: payloadCriteria,
         });
 
-        // reload page after update
         window.location.reload();
       } catch (err) {
         console.error(err);
         alert("Failed to update criteria");
       }
     },
+
+    async loadPhase(phaseId) {
+      try {
+        const criteriaRes = await getCriterias();
+        this.allCriteria = criteriaRes.data;
+
+        this.checkedCriteria = Object.fromEntries(this.allCriteria.map(c => [String(c.id), false]));
+        this.criteriaWeights = Object.fromEntries(this.allCriteria.map(c => [String(c.id), 0]));
+        this.phaseCriteriaIds = [];
+
+        const phaseRes = await getPhase(phaseId);
+        const p = phaseRes.data;
+
+        this.phase = p;
+        this.form.title = p.title;
+        this.form.description = p.description;
+
+        if (Array.isArray(p.criteria)) {
+          p.criteria.forEach(c => {
+            const cid = c.criterion?.id;
+            if (!cid) return;
+            this.phaseCriteriaIds.push(cid);
+            this.checkedCriteria[String(cid)] = true;
+            this.criteriaWeights[String(cid)] = c.weight ?? 0;
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load phase");
+        this.$router.push("/sessions");
+      }
+    },
   },
 
   async mounted() {
-    try {
-      const phaseId = Number(this.$route.params.id);
+    await this.loadPhase(Number(this.$route.params.id));
+  },
 
-      const criteriaRes = await getCriterias();
-      this.allCriteria = criteriaRes.data;
-
-      this.checkedCriteria = Object.fromEntries(this.allCriteria.map(c => [String(c.id), false]));
-      this.criteriaWeights = Object.fromEntries(this.allCriteria.map(c => [String(c.id), 0]));
-
-      const phaseRes = await getPhase(phaseId);
-      const p = phaseRes.data;
-
-      this.phase = p;
-      this.form.title = p.title;
-      this.form.description = p.description;
-
-      if (Array.isArray(p.criteria)) {
-        p.criteria.forEach(c => {
-          const cid = c.criterion?.id;
-          if (!cid) return;
-          this.phaseCriteriaIds.push(cid);
-          this.checkedCriteria[String(cid)] = true;
-          this.criteriaWeights[String(cid)] = c.weight ?? 0;
-        });
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Failed to load phase");
-      this.$router.push("/sessions");
-    }
+  watch: {
+    '$route.params.id': {
+      immediate: false,
+      async handler(newId) {
+        await this.loadPhase(Number(newId));
+      },
+    },
   },
 };
 </script>

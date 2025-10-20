@@ -30,25 +30,10 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    # 🔹 Create UserCriterion entries for all existing sessions & their criteria
     sessions = db.query(models.Session).all()
     for sess in sessions:
-        for phase in sess.phases:
-            for crit in phase.criteria:
-                exists = db.query(models.UserCriterion).filter_by(
-                    user_id=new_user.id,
-                    criterion_id=crit.id,
-                    phase_id=phase.id
-                ).first()
-                if not exists:
-                    uc = models.UserCriterion(
-                        user_id=new_user.id,
-                        criterion_id=crit.id,
-                        phase_id=phase.id
-                    )
-                    db.add(uc)
-
-
+        top_level_phases = [p for p in sess.phases if p.parent_id is None]
+        create_user_criteria_for_all_phases(db, new_user, top_level_phases)
     db.commit()
 
     return new_user
@@ -72,53 +57,22 @@ def get_user_evaluation(user_id: int, db: Session = Depends(get_db)):
         .options(
             joinedload(models.Session.phases)
             .joinedload(models.Phase.phase_criteria_assoc)
-            .joinedload(models.PhaseCriterion.criterion), 
+            .joinedload(models.PhaseCriterion.criterion),
             joinedload(models.Session.phases)
             .joinedload(models.Phase.user_criteria)
-            .joinedload(models.UserCriterion.criterion)
+            .joinedload(models.UserCriterion.criterion),
+            joinedload(models.Session.phases)
+            .joinedload(models.Phase.children)
         )
         .all()
     )
-
     return [
-        {
-            "id": s.id,
-            "title": s.title,
-            "description": s.description,
-            "phases": [
-                {
-                    "id": p.id,
-                    "title": p.title,
-                    "description": p.description,
-                    "userCriteria": [
-                        {
-                            "id": uc.id,
-                            "count_value": uc.count_value,
-                            "is_fulfilled": uc.is_fulfilled,
-                            "text_value": uc.text_value,
-                            "criterion": {
-                                "id": uc.criterion.id,
-                                "name": uc.criterion.name,
-                                "type": uc.criterion.type.value,
-                                "weight": next(
-                                    (
-                                        assoc.weight
-                                        for assoc in p.phase_criteria_assoc
-                                        if assoc.criterion_id == uc.criterion.id
-                                    ),
-                                    None,
-                                ),
-                            },
-                        }
-                        for uc in p.user_criteria
-                        if uc.user_id == user_id
-                    ],
-                }
-                for p in s.phases
-            ],
-        }
-        for s in sessions
-    ]
+    {
+        "id": s.id,
+        "title": s.title,
+        "description": s.description,
+        "phases": [user_phase_dict(p, user_id) for p in s.phases if p.parent_id is None]
+    } for s in sessions]
 
 
 # Update a user by ID
@@ -145,4 +99,54 @@ def delete_user(user_id: int, session: Session = Depends(get_db)):
     session.delete(user)
     session.commit()
     return {"status": "success", "message": f"User {user_id} deleted"}
+
+def user_phase_dict(phase, user_id):
+    return {
+        "id": phase.id,
+        "title": phase.title,
+        "description": phase.description,
+        "userCriteria": [
+            {
+                "id": uc.id,
+                "count_value": uc.count_value,
+                "is_fulfilled": uc.is_fulfilled,
+                "text_value": uc.text_value,
+                "criterion": {
+                    "id": uc.criterion.id,
+                    "name": uc.criterion.name,
+                    "type": uc.criterion.type.value,
+                    "weight": next(
+                        (
+                            assoc.weight
+                            for assoc in phase.phase_criteria_assoc
+                            if assoc.criterion_id == uc.criterion.id
+                        ),
+                        None,
+                    ),
+                },
+            }
+            for uc in phase.user_criteria
+            if uc.user_id == user_id
+        ],
+        "children": [user_phase_dict(child, user_id) for child in phase.children],
+    }
+
+def create_user_criteria_for_all_phases(db: Session, user, phases):
+    for phase in phases:
+        for crit in phase.criteria:
+            exists = db.query(models.UserCriterion).filter_by(
+                user_id=user.id,
+                criterion_id=crit.id,
+                phase_id=phase.id
+            ).first()
+            if not exists:
+                uc = models.UserCriterion(
+                    user_id=user.id,
+                    criterion_id=crit.id,
+                    phase_id=phase.id
+                )
+                db.add(uc)
+        if phase.children:
+            create_user_criteria_for_all_phases(db, user, phase.children)
+
 
