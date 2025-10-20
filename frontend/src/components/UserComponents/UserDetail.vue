@@ -118,7 +118,7 @@
               <li
                 v-for="(item, index) in filteredHistory"
                 :key="index"
-                @mousedown.prevent="selectHistory(item)" 
+                @mousedown.prevent="selectHistory(item)"
                 class="p-2 hover:bg-gray-100 cursor-pointer"
               >
                 {{ item }}
@@ -172,12 +172,19 @@ export default {
   },
   computed: {
     phaseGroups() {
+      const flattenPhases = (phases, depth = 0) => {
+        return phases.flatMap(phase => [
+          {
+            value: phase.id.toString(),
+            label: `${"— ".repeat(depth)}${phase.title}`,
+          },
+          ...(phase.children?.length ? flattenPhases(phase.children, depth + 1) : []),
+        ]);
+      };
+
       return this.sessions.map(session => ({
         label: session.title,
-        options: session.phases.map(phase => ({
-          value: phase.id.toString(),
-          label: phase.title,
-        })),
+        options: flattenPhases(session.phases || []),
       }));
     },
 
@@ -200,24 +207,18 @@ export default {
     getStorageKey(criterionId) {
       return `criterion_text_history_${criterionId}`;
     },
-
     filterHistory() {
       const history = JSON.parse(localStorage.getItem(this.getStorageKey(this.activeCriterion.criterion_id))) || [];
       const search = this.textDraft.toLowerCase();
       this.filteredHistory = history.filter(entry => entry.toLowerCase().includes(search));
     },
-
     hideDropdown() {
-      setTimeout(() => {
-        this.isTextareaActive = false;
-      }, 100);
+      setTimeout(() => (this.isTextareaActive = false), 100);
     },
-
     selectHistory(item) {
       this.textDraft = item;
       this.filteredHistory = [];
     },
-
     async fetchSessions() {
       const res = await getSessions();
       this.sessions = res.data;
@@ -244,41 +245,35 @@ export default {
 
       this.user = userRes.data;
       this.phase = phaseRes.data;
-
       this.criteria = critRes.data.sort((a, b) =>
         a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
       );
     },
-
-    async increment(criterionId) {
-      const crit = this.criteria.find(c => c.criterion_id === criterionId);
+    async increment(id) {
+      const crit = this.criteria.find(c => c.criterion_id === id);
       if (crit) crit.count_value = (crit.count_value || 0) + 1;
-      await incrementUserCriterion(criterionId, this.selectedUserId, this.selectedPhaseId);
+      await incrementUserCriterion(id, this.selectedUserId, this.selectedPhaseId);
     },
-    async decrement(criterionId) {
-      const crit = this.criteria.find(c => c.criterion_id === criterionId);
+    async decrement(id) {
+      const crit = this.criteria.find(c => c.criterion_id === id);
       if (crit) crit.count_value = Math.max((crit.count_value || 0) - 1, 0);
-      await decrementUserCriterion(criterionId, this.selectedUserId, this.selectedPhaseId);
+      await decrementUserCriterion(id, this.selectedUserId, this.selectedPhaseId);
     },
-    async toggleBoolean(criterionId, value) {
-      const boolValue = value === true || value === "true";
-      await setBooleanValue(criterionId, this.selectedUserId, this.selectedPhaseId, boolValue);
+    async toggleBoolean(id, value) {
+      await setBooleanValue(id, this.selectedUserId, this.selectedPhaseId, !!value);
     },
-
-    openTextModal(criterion) {
-      this.activeCriterion = criterion;
-      this.textDraft = criterion.text_value || "";
+    openTextModal(c) {
+      this.activeCriterion = c;
+      this.textDraft = c.text_value || "";
       this.showTextModal = true;
       this.filterHistory();
     },
-
     cancelText() {
       this.showTextModal = false;
       this.activeCriterion = null;
       this.textDraft = "";
       this.filteredHistory = [];
     },
-
     saveTextToLocalStorage(text) {
       const key = this.getStorageKey(this.activeCriterion.criterion_id);
       let history = JSON.parse(localStorage.getItem(key)) || [];
@@ -286,23 +281,19 @@ export default {
       history.unshift(text);
       localStorage.setItem(key, JSON.stringify(history.slice(0, 5)));
     },
-
     async saveText() {
       if (!this.activeCriterion) return;
-
       await setTextValue(
         this.activeCriterion.criterion_id,
         this.selectedUserId,
         this.selectedPhaseId,
         this.textDraft
       );
-
       this.activeCriterion.text_value = this.textDraft;
       this.saveTextToLocalStorage(this.textDraft);
       this.cancelText();
     },
   },
-
   async mounted() {
     await Promise.all([this.fetchSessions(), this.fetchUsers()]);
     await this.fetchData();

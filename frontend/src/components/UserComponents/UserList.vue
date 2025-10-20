@@ -105,12 +105,19 @@ export default {
   },
   computed: {
     phaseGroups() {
+      const flattenPhases = (phases, depth = 0) => {
+        return phases.flatMap(phase => [
+          {
+            value: phase.id.toString(),
+            label: `${'— '.repeat(depth)}${phase.title}`,
+          },
+          ...(phase.children?.length ? flattenPhases(phase.children, depth + 1) : []),
+        ]);
+      };
+
       return this.sessions.map(session => ({
         label: session.title,
-        options: session.phases.map(phase => ({
-          value: phase.id.toString(),
-          label: phase.title,
-        })),
+        options: flattenPhases(session.phases || []),
       }));
     },
   },
