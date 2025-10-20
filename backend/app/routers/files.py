@@ -166,9 +166,13 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
         if "Sessions" in xls.sheet_names:
             df_sessions = pd.read_excel(xls, sheet_name="Sessions")
             for _, row in df_sessions.iterrows():
+                description = row.get("description")
+                if pd.isna(description):
+                    description = None
+
                 existing = (
                     db.query(models.Session)
-                    .filter_by(title=row["title"], description=row.get("description"))
+                    .filter_by(title=row["title"], description=description)
                     .first()
                 )
                 if existing:
@@ -176,7 +180,7 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
                     continue
                 new_s = models.Session(
                     title=row["title"],
-                    description=row.get("description")
+                    description=description
                 )
                 db.add(new_s)
                 db.flush()
@@ -189,13 +193,17 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
             for _, row in df_phases.iterrows():
                 session_ref = session_id_map[int(row["session_id"])]
                 parent_ref = phase_id_map.get(int(row["parent_id"])) if not pd.isna(row.get("parent_id")) else None
-                existing = db.query(models.Phase).filter_by(title=row["title"], session_id=session_ref, parent_id=parent_ref).first()
+                description = row.get("description")
+                if pd.isna(description):
+                    description = None
+
+                existing = db.query(models.Phase).filter_by(title=row["title"], session_id=session_ref, parent_id=parent_ref, description=description).first()
                 if existing:
                     phase_id_map[int(row["id"])] = existing.id
                     continue
                 new_p = models.Phase(
                     title=row["title"],
-                    description=row.get("description"),
+                    description=description,
                     session_id=session_ref,
                     parent_id=parent_ref
                 )
