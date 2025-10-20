@@ -65,11 +65,11 @@
 </template>
 
 <script>
-import BaseInput from "@/components/BaseComponents/BaseInput.vue";
-import BaseButton from "@/components/BaseComponents/BaseButton.vue";
-import BaseToggle from "@/components/BaseComponents/BaseToggle.vue";
-import { getCriterias } from "../../api/criterias";
-import { createSession } from "../../api/sessions";
+import BaseInput from "@/BaseComponents/BaseInput.vue";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import BaseToggle from "@/BaseComponents/BaseToggle.vue";
+import { getCriterias } from "@/live-sessions/api/criterias";
+import { createSession } from "@/live-sessions/api/sessions";
 
 export default {
   components: { BaseInput, BaseButton, BaseToggle },

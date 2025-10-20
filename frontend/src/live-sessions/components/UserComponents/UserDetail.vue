@@ -138,18 +138,18 @@
 </template>
 
 <script>
-import BaseButton from "../BaseComponents/BaseButton.vue";
-import BaseSelect from "../BaseComponents/BaseSelect.vue";
-import { getUsers, getUser } from "../../api/users";
-import { getPhase } from "../../api/phases";
-import { getSessions } from "../../api/sessions";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import BaseSelect from "@/BaseComponents/BaseSelect.vue";
+import { getUsers, getUser } from "@/live-sessions/api/users";
+import { getPhase } from "@/live-sessions/api/phases";
+import { getSessions } from "@/live-sessions/api/sessions";
 import {
   getUserCriterias,
   incrementUserCriterion,
   decrementUserCriterion,
   setBooleanValue,
   setTextValue,
-} from "../../api/criterias";
+} from "@/live-sessions/api/criterias";
 import { DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {

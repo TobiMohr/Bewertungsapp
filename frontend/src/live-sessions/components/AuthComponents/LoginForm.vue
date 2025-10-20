@@ -11,8 +11,8 @@
 </template>
 
 <script>
-import { loginUser } from "../../api/auth";
-import { useAuth } from "../../stores/auth";
+import { loginUser } from "@/live-sessions/api/auth";
+import { useAuth } from "@/stores/auth";
 
 export default {
   data() {

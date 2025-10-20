@@ -155,9 +155,9 @@
 </template>
 
 <script>
-import BaseSelect from "../BaseComponents/BaseSelect.vue";
-import PhaseTree from "../BaseComponents/PhaseTree.vue";
-import { getUser, getUserEvaluation, getUsers } from "../../api/users";
+import BaseSelect from "@/BaseComponents/BaseSelect.vue";
+import PhaseTree from "@/BaseComponents/PhaseTree.vue";
+import { getUser, getUserEvaluation, getUsers } from "@/live-sessions/api/users";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/24/solid";
 
 export default {

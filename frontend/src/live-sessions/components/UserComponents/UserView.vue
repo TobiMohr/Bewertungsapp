@@ -6,8 +6,8 @@
 </template>
 
 <script>
-import UserForm from "./UserComponents/UserForm.vue";
-import UserList from "./UserComponents/UserList.vue";
+import UserForm from "./UserForm.vue";
+import UserList from "./UserList.vue";
 
 export default {
   components: { UserForm, UserList },

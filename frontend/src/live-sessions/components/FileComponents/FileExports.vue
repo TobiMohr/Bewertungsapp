@@ -46,8 +46,8 @@
 
 <script setup>
 import { ref, computed } from "vue";
-import BaseButton from "../BaseComponents/BaseButton.vue";
-import { exportUsersXLSX, importUsersXLSX } from "@/api/files";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import { exportUsersXLSX, importUsersXLSX } from "@/live-sessions/api/files";
 
 const selectedFile = ref(null);
 const isExporting = ref(false);

@@ -85,12 +85,12 @@
 </template>
 
 <script>
-import { getUsers, deleteUser } from "../../api/users";
-import { getSessions } from "../../api/sessions";
+import { getUsers, deleteUser } from "@/live-sessions/api/users";
+import { getSessions } from "@/live-sessions/api/sessions";
 import { PencilIcon, TrashIcon, ChartBarIcon  } from "@heroicons/vue/24/solid";
-import BaseButton from "../BaseComponents/BaseButton.vue";
-import ConfirmModal from "../BaseComponents/ConfirmModal.vue";
-import BaseSelect from "../BaseComponents/BaseSelect.vue";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import ConfirmModal from "@/BaseComponents/ConfirmModal.vue";
+import BaseSelect from "@/BaseComponents/BaseSelect.vue";
 
 export default {
   components: { PencilIcon, ChartBarIcon , TrashIcon, BaseButton, BaseSelect, ConfirmModal },

@@ -66,10 +66,10 @@
 </template>
 
 <script>
-import BaseButton from "@/components/BaseComponents/BaseButton.vue";
-import BaseToggle from "@/components/BaseComponents/BaseToggle.vue";
-import { getCriterias } from "../../api/criterias";
-import { createPhase } from "../../api/phases";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import BaseToggle from "@/BaseComponents/BaseToggle.vue";
+import { getCriterias } from "@/live-sessions/api/criterias";
+import { createPhase } from "@/live-sessions/api/phases";
 
 export default {
   components: { BaseButton, BaseToggle },

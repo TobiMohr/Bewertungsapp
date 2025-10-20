@@ -67,10 +67,10 @@
 </template>
 
 <script>
-import { getSessions, deleteSession } from "../../api/sessions";
+import { getSessions, deleteSession } from "@/live-sessions/api/sessions";
 import { PencilIcon, TrashIcon } from "@heroicons/vue/24/solid";
-import BaseButton from "../BaseComponents/BaseButton.vue";
-import ConfirmModal from "../BaseComponents/ConfirmModal.vue";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import ConfirmModal from "@/BaseComponents/ConfirmModal.vue";
 
 export default {
   components: { PencilIcon, TrashIcon, BaseButton, ConfirmModal },
