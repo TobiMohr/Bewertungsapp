@@ -76,18 +76,18 @@ def list_criteria(session: Session = Depends(get_db)):
 # ----- UserCriterion -----
 @router.get("/user/{user_id}/phase/{phase_id}", response_model=List[UserCriterionRead])
 def get_user_criteria(user_id: int, phase_id: int, session: Session = Depends(get_db)):
-    phase = (
-        session.query(Phase)
-        .options(joinedload(Phase.children))
-        .filter(Phase.id == phase_id)
-        .first()
-    )
+    # Ensure phase exists
+    phase = session.query(Phase).filter(Phase.id == phase_id).first()
     if not phase:
         raise HTTPException(status_code=404, detail="Phase not found")
 
-    data = get_user_criteria_recursive(phase, user_id, session)
+    # Only fetch criteria for this phase (no recursion)
+    data = session.query(UserCriterion).filter_by(user_id=user_id, phase_id=phase.id).all()
+
+    # Preload criterion relationships
     for uc in data:
-        _ = uc.criterion  # preload relationship
+        _ = uc.criterion
+
     return data
 
 # ----- Unified Update Endpoint -----
