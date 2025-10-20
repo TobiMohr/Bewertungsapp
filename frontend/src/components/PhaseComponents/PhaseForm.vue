@@ -2,6 +2,12 @@
   <div class="max-w-2xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
     <h2 class="text-2xl font-bold text-gray-800 mb-6">Create Phase</h2>
 
+    <!-- Show info if child phase -->
+    <div v-if="phase.parent_id" class="mb-4 text-sm text-gray-600 bg-gray-50 p-3 rounded">
+      This phase will be created as a <strong>child</strong> of:
+      <span class="font-semibold">{{ parentPhaseTitle }}</span>
+    </div>
+
     <form @submit.prevent="submitForm" class="space-y-6">
       <!-- Title -->
       <div>
@@ -26,7 +32,7 @@
         ></textarea>
       </div>
 
-      <!-- Criteria selection -->
+      <!-- Criteria -->
       <div>
         <h3 class="text-lg font-semibold text-gray-700 mb-4">Select Criteria</h3>
         <div class="flex flex-col space-y-3">
@@ -36,11 +42,7 @@
             class="flex items-center justify-between space-x-4"
           >
             <span class="text-gray-800 w-1/3">{{ crit.name }}</span>
-
-            <!-- Toggle -->
             <BaseToggle v-model="checkedCriteria[crit.id]" />
-
-            <!-- Weight input -->
             <input
               v-if="checkedCriteria[crit.id]"
               type="number"
@@ -77,7 +79,9 @@ export default {
         title: "",
         description: "",
         session_id: null,
+        parent_id: null, // <-- added
       },
+      parentPhaseTitle: null, // for display
       criteria: [],
       checkedCriteria: {},
       criteriaWeights: {},
@@ -89,7 +93,6 @@ export default {
         const res = await getCriterias();
         this.criteria = res.data;
 
-        // Initialize toggles and default weights
         this.checkedCriteria = Object.fromEntries(this.criteria.map(c => [c.id, true]));
         this.criteriaWeights = Object.fromEntries(this.criteria.map(c => [c.id, 1]));
       } catch (err) {
@@ -97,34 +100,47 @@ export default {
       }
     },
     async submitForm() {
-        try {
-            const payload = {
-            ...this.phase,
-            criteria: Object.entries(this.checkedCriteria)
-                .filter(([, checked]) => checked)
-                .map(([id]) => ({
-                id: Number(id),
-                weight: this.criteriaWeights[id] || 1,
-                })),
-            };
+      try {
+        const payload = {
+          ...this.phase,
+          criteria: Object.entries(this.checkedCriteria)
+            .filter(([, checked]) => checked)
+            .map(([id]) => ({
+              id: Number(id),
+              weight: this.criteriaWeights[id] || 1,
+            })),
+        };
 
-            await createPhase(payload);
-            this.$router.push(`/sessions/edit/${this.phase.session_id}`);
-        } catch (err) {
-            console.error("Failed to create phase:", err);
-            alert(err.response?.data?.detail || "Failed to create phase");
-        }
+        await createPhase(payload);
+        this.$router.push(`/sessions/edit/${this.phase.session_id}`);
+      } catch (err) {
+        console.error("Failed to create phase:", err);
+        alert(err.response?.data?.detail || "Failed to create phase");
+      }
     },
   },
-  mounted() {
-    // Get session_id from query params
+  async mounted() {
     const sessionId = Number(this.$route.query.sessionId);
+    const parentId = this.$route.query.parentId ? Number(this.$route.query.parentId) : null;
+
     if (!sessionId) {
       alert("No session selected for this phase");
       this.$router.push("/sessions");
       return;
     }
+
     this.phase.session_id = sessionId;
+    this.phase.parent_id = parentId;
+
+    if (parentId) {
+      try {
+        const { getPhase } = await import("../../api/phases");
+        const parentRes = await getPhase(parentId);
+        this.parentPhaseTitle = parentRes.data.title;
+      } catch {
+        this.parentPhaseTitle = "(unknown)";
+      }
+    }
 
     this.fetchCriteria();
   },
