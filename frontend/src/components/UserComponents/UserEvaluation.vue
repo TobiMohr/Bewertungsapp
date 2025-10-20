@@ -84,15 +84,15 @@
                 <div class="flex flex-col">
                   <p class="text-gray-900 font-medium">
                     {{ uc.criterion.name }}
-                    <span
-                      class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full"
-                      :class="uc.criterion.weight === 0
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-emerald-100 text-emerald-700'"
-                    >
-                      Weight: {{ uc.criterion.weight }}
-                    </span>
                   </p>
+                  <span
+                    class="text-xs font-semibold px-2 py-0.5 rounded-full mt-1 self-start"
+                    :class="uc.criterion.weight === 0
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-emerald-100 text-emerald-700'"
+                  >
+                    Weight: {{ uc.criterion.weight }}
+                  </span>
                 </div>
 
                 <div
@@ -122,19 +122,21 @@
                 :key="uc.id"
                 class="p-3 border rounded-lg shadow-sm bg-white"
               >
-                <p class="text-gray-900 font-medium mb-2">
-                  {{ uc.criterion.name }}
+                <div class="flex flex-col">
+                  <p class="text-gray-900 font-medium mb-1">
+                    {{ uc.criterion.name }}
+                  </p>
                   <span
-                    class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full"
+                    class="text-xs font-semibold px-2 py-0.5 rounded-full self-start"
                     :class="uc.criterion.weight === 0
                       ? 'bg-red-100 text-red-700'
                       : 'bg-emerald-100 text-emerald-700'"
                   >
                     Weight: {{ uc.criterion.weight }}
                   </span>
-                </p>
+                </div>
 
-                <div class="text-gray-800 whitespace-pre-wrap break-words">
+                <div class="text-gray-800 whitespace-pre-wrap break-words mt-2">
                   {{ uc.text_value || '—' }}
                 </div>
               </div>
