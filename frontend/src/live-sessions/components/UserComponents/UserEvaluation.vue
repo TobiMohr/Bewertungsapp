@@ -21,7 +21,7 @@
       <!-- Tree only when expanded -->
       <div v-if="!isTreeCollapsed">
         <h3 class="text-lg font-semibold text-gray-800 mb-3">Sessions</h3>
-        <PhaseTree
+        <SessionTree
           :items="sessions"
           :activeId="selectedItem?.id"
           @select="handleSelect"
@@ -138,12 +138,12 @@
 
 <script>
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
-import PhaseTree from "@/BaseComponents/PhaseTree.vue";
+import SessionTree from "../SessionTree.vue";
 import { getUser, getUserEvaluation, getUsers } from "@/live-sessions/api/users";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/24/solid";
 
 export default {
-  components: { BaseSelect, PhaseTree, ChevronLeftIcon, ChevronRightIcon },
+  components: { BaseSelect, SessionTree, ChevronLeftIcon, ChevronRightIcon },
   data() {
     return {
       user: null,
