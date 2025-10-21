@@ -20,15 +20,10 @@
       />
     </div>
 
-    <!-- Show message if no session selected -->
-    <p v-if="!selectedSessionId" class="text-gray-500 mt-4 text-center">
-      Please select a session to display criteria.
-    </p>
-
     <!-- Criteria list -->
-    <ul v-else class="divide-y divide-gray-200">
+    <ul class="divide-y divide-gray-200">
       <li
-        v-for="crit in criterias"
+        v-for="crit in selectedSessionId ? criterias : allCriterias"
         :key="crit.id"
         class="py-4 flex items-center justify-between"
       >
@@ -41,6 +36,7 @@
 
         <div>
           <BaseButton
+            :disabled="!selectedSessionId"
             @click="$router.push({ path: `/criterias/${crit.id}/users`, query: { session: selectedSessionId } })"
             class="p-2 rounded-full"
             tooltip="Edit for Users"
@@ -60,6 +56,7 @@
 
 <script>
 import { getSessions } from "@/live-sessions/api/sessions";
+import { getCriterias } from "@/live-sessions/api/criterias";
 import { ChartBarIcon } from "@heroicons/vue/24/solid";
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
@@ -69,26 +66,26 @@ export default {
   data() {
     return {
       sessions: [],
-      criterias: [],
+      criterias: [],       // criteria for selected session
+      allCriterias: [],    // all criteria
       selectedSessionId: null,
     };
   },
   computed: {
     sessionOptions() {
-      // Flatten all sessions and subsessions into a single array for selection
       const flattenSessions = (sessions, depth = 0) => {
-        return sessions.flatMap((s) => [
+        return sessions.flatMap(s => [
           { value: s.id.toString(), label: `${"— ".repeat(depth)}${s.title}` },
-          ...(s.children ? flattenSessions(s.children, depth + 1) : []),
+          ...(s.children ? flattenSessions(s.children, depth + 1) : [])
         ]);
       };
       return flattenSessions(this.sessions);
-    },
+    }
   },
   watch: {
     selectedSessionId() {
       this.fetchCriteriasBySession();
-    },
+    }
   },
   methods: {
     async fetchSessions() {
@@ -100,18 +97,27 @@ export default {
       }
     },
 
+    async fetchAllCriterias() {
+      try {
+        const res = await getCriterias();
+        this.allCriterias = res.data.sort((a, b) =>
+          a.name.localeCompare(b.name, "en", { sensitivity: "base" })
+        );
+      } catch (err) {
+        console.error("Failed to load all criterias:", err);
+      }
+    },
+
     async fetchCriteriasBySession() {
       if (!this.selectedSessionId) {
-        this.criterias = [];
+        // No session selected → show all criteria
+        this.criterias = this.allCriterias;
         return;
       }
 
       const sessionIdNum = Number(this.selectedSessionId);
-
-      // Flatten all sessions and children to find the selected session
-      const flattenAllSessions = (sessions) => {
-        return sessions.flatMap(s => [s, ...(s.children ? flattenAllSessions(s.children) : [])]);
-      };
+      const flattenAllSessions = (sessions) =>
+        sessions.flatMap(s => [s, ...(s.children ? flattenAllSessions(s.children) : [])]);
 
       const allSessions = flattenAllSessions(this.sessions);
       const session = allSessions.find(s => s.id === sessionIdNum);
@@ -120,10 +126,13 @@ export default {
         ? session.criteria.map(c => c.criterion)
             .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }))
         : [];
-    },
+    }
   },
   async mounted() {
     await this.fetchSessions();
-  },
+    await this.fetchAllCriterias();
+    // initially show all criteria
+    this.criterias = this.allCriterias;
+  }
 };
 </script>
