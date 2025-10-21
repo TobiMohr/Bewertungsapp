@@ -45,7 +45,7 @@ class CriterionWithWeightCreate(BaseModel):
 class UserCriterionBase(BaseModel):
     user_id: int
     criterion_id: int
-    phase_id: int
+    session_id: int
 
 
 class UserCriterionRead(UserCriterionBase):

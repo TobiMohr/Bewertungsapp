@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import db, models
-from .routers import files, users, auth, criterias, sessions, phases
+from .routers import files, users, auth, criterias, sessions
 
 # --- configure logging once, at startup ---
 logging.basicConfig(level=logging.INFO)
@@ -35,5 +35,4 @@ app.include_router(users.router)
 app.include_router(auth.router)
 app.include_router(criterias.router)
 app.include_router(sessions.router)
-app.include_router(phases.router)
 app.include_router(files.router)

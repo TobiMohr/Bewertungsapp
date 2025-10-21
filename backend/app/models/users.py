@@ -38,7 +38,7 @@ class UserCriterion(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     criterion_id = Column(Integer, ForeignKey("criteria.id"), nullable=False)
-    phase_id = Column(Integer, ForeignKey("phases.id"), nullable=True)
+    session_id = Column(Integer, ForeignKey("sessions.id"), nullable=True)
 
     # For COUNTABLE type: store an integer
     count_value = Column(Integer, nullable=False, default=0)
@@ -63,5 +63,5 @@ class UserCriterion(Base):
     # Relationships
     user = relationship("User", back_populates="criteria")
     criterion = relationship("Criterion", back_populates="users")
-    phase = relationship("Phase", back_populates="user_criteria")
+    session = relationship("Session", back_populates="user_criteria")
 

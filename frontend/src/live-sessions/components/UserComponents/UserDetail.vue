@@ -4,27 +4,27 @@
     <div class="flex items-center justify-between mb-4">
       <!-- Header -->
       <h2 class="text-2xl font-bold text-gray-800 mb-2">
-        {{ phase?.title }} from {{ user?.first_name }} {{ user?.last_name }}
+        {{ session?.title }} from {{ user?.first_name }} {{ user?.last_name }}
       </h2>
 
       <BaseButton
         variant="switch"
-        @click="$router.push({ path: `/criterias/1/users`, query: { phase: selectedPhaseId } })"
+        @click="$router.push({ path: `/criterias/1/users`, query: { session: selectedSessionId } })"
         tooltip="Switch to Criterion View"
       >
         <ArrowsRightLeftIcon class="h-5 w-5" />
       </BaseButton>
     </div>
     
-    <!-- Phase & User Selection -->
+    <!-- Session & User Selection -->
     <div class="mb-6 flex flex-col md:flex-row md:items-end md:space-x-6">
-      <!-- Phase Select -->
+      <!-- Session Select -->
       <div class="w-full md:w-1/4">
-        <label class="block mb-2 font-semibold">Select Phase:</label>
+        <label class="block mb-2 font-semibold">Select Session:</label>
         <BaseSelect
-          v-model="selectedPhaseId"
-          :groups="phaseGroups"
-          placeholder="-- Select Phase --"
+          v-model="selectedSessionId"
+          :options="flattenedSessions"
+          placeholder="-- Select Session --"
         />
       </div>
 
@@ -141,8 +141,7 @@
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
 import { getUsers, getUser } from "@/live-sessions/api/users";
-import { getPhase } from "@/live-sessions/api/phases";
-import { getSessions } from "@/live-sessions/api/sessions";
+import { getSessions, getSession } from "@/live-sessions/api/sessions";
 import {
   getUserCriterias,
   incrementUserCriterion,
@@ -157,7 +156,7 @@ export default {
   data() {
     return {
       sessions: [],
-      selectedPhaseId: "",
+      selectedSessionId: "",
       users: [],
       user: null,
       selectedUserId: "",
@@ -167,27 +166,19 @@ export default {
       textDraft: "",
       filteredHistory: [],
       isTextareaActive: false,
-      phase: null,
+      session: null,
     };
   },
   computed: {
-    phaseGroups() {
-      const flattenPhases = (phases, depth = 0) => {
-        return phases.flatMap(phase => [
-          {
-            value: phase.id.toString(),
-            label: `${"— ".repeat(depth)}${phase.title}`,
-          },
-          ...(phase.children?.length ? flattenPhases(phase.children, depth + 1) : []),
+    flattenedSessions() {
+      const flatten = (sessions, depth = 0) => {
+        return sessions.flatMap(s => [
+          { value: s.id.toString(), label: `${'— '.repeat(depth)}${s.title}` },
+          ...(s.children?.length ? flatten(s.children, depth + 1) : [])
         ]);
       };
-
-      return this.sessions.map(session => ({
-        label: session.title,
-        options: flattenPhases(session.phases || []),
-      }));
+      return flatten(this.sessions);
     },
-
     userOptions() {
       return this.users.map(u => ({
         value: u.id.toString(),
@@ -196,11 +187,11 @@ export default {
     },
   },
   watch: {
-    selectedPhaseId(newPhaseId) {
-      this.fetchData(this.selectedUserId, newPhaseId);
+    selectedSessionId(newSessionId) {
+      this.fetchData(this.selectedUserId, newSessionId);
     },
     selectedUserId(newUserId) {
-      this.fetchData(newUserId, this.selectedPhaseId);
+      this.fetchData(newUserId, this.selectedSessionId);
     },
   },
   methods: {
@@ -222,8 +213,8 @@ export default {
     async fetchSessions() {
       const res = await getSessions();
       this.sessions = res.data;
-      const routePhaseId = this.$route.query.phase;
-      if (routePhaseId) this.selectedPhaseId = routePhaseId.toString();
+      const routeSessionId = this.$route.query.session;
+      if (routeSessionId) this.selectedSessionId = routeSessionId.toString();
     },
     async fetchUsers() {
       const res = await getUsers();
@@ -232,19 +223,19 @@ export default {
       if (!this.selectedUserId && routeUserId)
         this.selectedUserId = routeUserId.toString();
     },
-    async fetchData(userIdOverride, phaseIdOverride) {
+    async fetchData(userIdOverride, sessionIdOverride) {
       const userId = userIdOverride || this.selectedUserId;
-      const phaseId = phaseIdOverride || this.selectedPhaseId;
-      if (!phaseId || !userId) return;
+      const sessionId = sessionIdOverride || this.selectedSessionId;
+      if (!sessionId || !userId) return;
 
-      const [userRes, critRes, phaseRes] = await Promise.all([
+      const [userRes, critRes, sessionRes] = await Promise.all([
         getUser(userId),
-        getUserCriterias(userId, phaseId),
-        getPhase(phaseId),
+        getUserCriterias(userId, sessionId),
+        getSession(sessionId),
       ]);
 
       this.user = userRes.data;
-      this.phase = phaseRes.data;
+      this.session = sessionRes.data;
       this.criteria = critRes.data.sort((a, b) =>
         a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
       );
@@ -252,15 +243,15 @@ export default {
     async increment(id) {
       const crit = this.criteria.find(c => c.criterion_id === id);
       if (crit) crit.count_value = (crit.count_value || 0) + 1;
-      await incrementUserCriterion(id, this.selectedUserId, this.selectedPhaseId);
+      await incrementUserCriterion(id, this.selectedUserId, this.selectedSessionId);
     },
     async decrement(id) {
       const crit = this.criteria.find(c => c.criterion_id === id);
       if (crit) crit.count_value = Math.max((crit.count_value || 0) - 1, 0);
-      await decrementUserCriterion(id, this.selectedUserId, this.selectedPhaseId);
+      await decrementUserCriterion(id, this.selectedUserId, this.selectedSessionId);
     },
     async toggleBoolean(id, value) {
-      await setBooleanValue(id, this.selectedUserId, this.selectedPhaseId, !!value);
+      await setBooleanValue(id, this.selectedUserId, this.selectedSessionId, !!value);
     },
     openTextModal(c) {
       this.activeCriterion = c;
@@ -286,7 +277,7 @@ export default {
       await setTextValue(
         this.activeCriterion.criterion_id,
         this.selectedUserId,
-        this.selectedPhaseId,
+        this.selectedSessionId,
         this.textDraft
       );
       this.activeCriterion.text_value = this.textDraft;

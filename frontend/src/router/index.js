@@ -20,10 +20,6 @@ import SessionList from "@/live-sessions/components/SessionComponents/SessionLis
 import SessionForm from "@/live-sessions/components/SessionComponents/SessionForm.vue";
 import SessionEdit from "@/live-sessions/components/SessionComponents/SessionEdit.vue";
 
-// Phases
-import PhaseDetail from "@/live-sessions/components/PhaseComponents/PhaseDetail.vue";
-import PhaseForm from "@/live-sessions/components/PhaseComponents/PhaseForm.vue";
-
 //Files
 import FileExports from "@/live-sessions/components/FileComponents/FileExports.vue";
 
@@ -86,16 +82,6 @@ const routes = [
     path: "/sessions/edit/:id",
     component: SessionEdit,
     props: true,
-  },
-  // Phases
-  {
-    path: "/phases/:id",
-    component: PhaseDetail,
-    props: true,
-  },
-  {
-    path: "/phases/create",
-    component: PhaseForm,
   },
   // Files
   {

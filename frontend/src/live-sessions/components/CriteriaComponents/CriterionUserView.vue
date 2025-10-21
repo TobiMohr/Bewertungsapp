@@ -1,6 +1,6 @@
 <template>
   <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
-    <!-- Header with button inline -->
+    <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-2xl font-bold text-gray-800">
         {{ criterion?.name }} — Edit for All Users
@@ -9,16 +9,15 @@
       <BaseButton
         variant="switch"
         :disabled="!userCriteria.length"
-        @click="$router.push({ path: `/users/${userCriteria[0]?.user?.id}`, query: { phase: selectedPhaseId } })"
+        @click="$router.push({ path: `/users/${userCriteria[0]?.user?.id}`, query: { session: selectedSessionId } })"
         tooltip="Switch to User View"
       >
         <ArrowsRightLeftIcon class="h-5 w-5" />
       </BaseButton>
     </div>
 
-    <!-- Phase & Criterion Selection -->
+    <!-- Criterion & Session Select -->
     <div class="mb-6 flex flex-col md:flex-row md:items-end md:space-x-6">
-      <!-- Criterion Select -->
       <div class="w-full md:w-1/3">
         <label class="block mb-2 font-semibold">Select Criterion:</label>
         <BaseSelect
@@ -28,23 +27,27 @@
         />
       </div>
 
-      <!-- Phase Select -->
       <div class="w-full md:w-1/3 mt-4 md:mt-0">
-        <label class="block mb-2 font-semibold">Select Phase:</label>
+        <label class="block mb-2 font-semibold">Select Session:</label>
         <BaseSelect
-          v-model="selectedPhaseId"
-          :groups="phaseGroups"
-          placeholder="-- Select Phase --"
+          v-model="selectedSessionId"
+          :options="sessionOptions"
+          placeholder="-- Select Session --"
         />
       </div>
     </div>
 
-    <!-- Show message if no phase selected -->
-    <p v-if="!selectedPhaseId" class="text-gray-500 text-center mt-4">
-      Please select a phase to display criteria for users.
+    <!-- No session selected -->
+    <p v-if="!selectedSessionId" class="text-gray-500 text-center mt-4">
+      Please select a session before criteria are displayed.
     </p>
 
-    <!-- User List -->
+    <!-- Criterion not in session -->
+    <p v-else-if="filteredUserCriteria.length === 0" class="text-gray-500 text-center mt-4">
+      This criterion is not part of the selected session.
+    </p>
+
+    <!-- UserCriteria Table -->
     <div v-else-if="userCriteria.length">
       <table class="w-full border-collapse border border-gray-200 rounded-lg">
         <thead class="bg-gray-100">
@@ -55,14 +58,13 @@
         </thead>
         <tbody>
           <tr
-            v-for="uc in userCriteria"
+            v-for="uc in filteredUserCriteria"
             :key="uc.user?.id"
             class="border-t border-gray-200 hover:bg-gray-50"
           >
             <td class="p-3 text-gray-800">
               {{ uc.user?.first_name }} {{ uc.user?.last_name }}
             </td>
-
             <td class="p-3">
               <!-- Countable -->
               <div v-if="criterion?.type === 'countable'" class="flex items-center space-x-2">
@@ -85,7 +87,7 @@
                 />
               </div>
 
-              <!-- Text with history -->
+              <!-- Text -->
               <div v-else-if="criterion?.type === 'text'" class="relative">
                 <textarea
                   v-model="uc.text_value"
@@ -96,7 +98,6 @@
                   placeholder="Enter text..."
                   rows="3"
                 />
-
                 <ul
                   v-if="uc.isTextareaActive && uc.filteredHistory?.length"
                   class="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto"
@@ -117,9 +118,9 @@
       </table>
     </div>
 
-    <!-- No users for this criterion -->
+    <!-- No users for this session -->
     <p v-else class="text-gray-500 text-center mt-4">
-      No users found for this criterion.
+      No users found for this criterion in the selected session.
     </p>
   </div>
 </template>
@@ -142,97 +143,84 @@ export default {
   components: { BaseSelect, BaseButton, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
   data() {
     return {
-      criterion: null,
-      selectedCriterionId: this.$route.params.id || "",
-      selectedPhaseId: this.$route.query.phase || "",
-      userCriteria: [],
       criterias: [],
       sessions: [],
+      selectedCriterionId: this.$route.params.id || "",
+      selectedSessionId: this.$route.query.session || "",
+      criterion: null,
+      userCriteria: [],
     };
   },
   computed: {
     criterionOptions() {
-      return this.criterias.map((c) => ({ value: c.id.toString(), label: c.name }));
+      return this.criterias.map(c => ({ value: c.id.toString(), label: c.name }));
     },
-    phaseGroups() {
-      // Flatten phases recursively with indentation
-      const flattenPhases = (phases, depth = 0) => {
-        return phases.flatMap((phase) => [
-          {
-            value: phase.id.toString(),
-            label: `${"— ".repeat(depth)}${phase.title}`,
-          },
-          ...(phase.children?.length ? flattenPhases(phase.children, depth + 1) : []),
+    sessionOptions() {
+      const flattenChildren = (children, depth = 0) =>
+        children.flatMap(c => [
+          { value: c.id.toString(), label: `${"— ".repeat(depth)}${c.title}` },
+          ...(c.children?.length ? flattenChildren(c.children, depth + 1) : []),
         ]);
-      };
 
-      return this.sessions.map((session) => ({
-        label: session.title,
-        options: flattenPhases(session.phases || []),
-      }));
+      return this.sessions.flatMap(s => [
+        { value: s.id.toString(), label: s.title },
+        ...(s.children ? flattenChildren(s.children, 1) : []),
+      ]);
+    },
+    filteredUserCriteria() {
+      return this.userCriteria.filter(uc => uc.session_id.toString() === this.selectedSessionId);
     },
   },
   watch: {
     async selectedCriterionId() {
       await this.fetchData();
     },
-    async selectedPhaseId() {
+    async selectedSessionId() {
       await this.fetchData();
     },
   },
   methods: {
+    async fetchCriterias() {
+      const res = await getCriterias();
+      this.criterias = res.data.sort((a, b) => a.name.localeCompare(b.name));
+    },
     async fetchSessions() {
       const res = await getSessions();
       this.sessions = res.data;
     },
-    async fetchCriterias() {
-      const res = await getCriterias();
-      this.criterias = res.data;
-    },
     async fetchData() {
-      if (!this.selectedCriterionId || !this.selectedPhaseId) {
+      if (!this.selectedCriterionId || !this.selectedSessionId) {
         this.userCriteria = [];
         return;
       }
-
-      const res = await getUserCriteriasForCriterion(this.selectedCriterionId, this.selectedPhaseId);
-
-      this.userCriteria = res.data.map((uc) => ({
+      const res = await getUserCriteriasForCriterion(this.selectedCriterionId, this.selectedSessionId);
+      this.userCriteria = res.data.map(uc => ({
         ...uc,
         filteredHistory: [],
         isTextareaActive: false,
         text_value: uc.text_value || "",
       }));
-
-      this.criterion = this.criterias.find((c) => c.id.toString() === this.selectedCriterionId);
+      this.criterion = this.criterias.find(c => c.id.toString() === this.selectedCriterionId);
     },
     async updateCount(uc, delta) {
       const newValue = (uc.count_value || 0) + delta;
       uc.count_value = Math.max(0, newValue);
-      if (delta > 0)
-        await incrementUserCriterion(this.selectedCriterionId, uc.user.id, this.selectedPhaseId);
-      else
-        await decrementUserCriterion(this.selectedCriterionId, uc.user.id, this.selectedPhaseId);
+      if (delta > 0) await incrementUserCriterion(this.selectedCriterionId, uc.user.id, this.selectedSessionId);
+      else await decrementUserCriterion(this.selectedCriterionId, uc.user.id, this.selectedSessionId);
     },
     async updateBoolean(uc) {
-      await setBooleanValue(this.selectedCriterionId, uc.user.id, this.selectedPhaseId, uc.is_fulfilled);
+      await setBooleanValue(this.selectedCriterionId, uc.user.id, this.selectedSessionId, uc.is_fulfilled);
     },
-
-    // --- Textarea History ---
     getStorageKey() {
       return `criterion_text_history_${this.selectedCriterionId}`;
     },
     filterHistory(uc) {
       const history = JSON.parse(localStorage.getItem(this.getStorageKey())) || [];
       const search = (uc.text_value || "").toLowerCase();
-      uc.filteredHistory = history.filter((entry) =>
-        entry.toLowerCase().includes(search)
-      );
+      uc.filteredHistory = history.filter(entry => entry.toLowerCase().includes(search));
     },
     hideDropdown(uc) {
-      setTimeout(() => {
-        uc.isTextareaActive = false;
-      }, 100);
+      setTimeout(() => (uc.isTextareaActive = false), 100);
     },
     selectHistory(uc, text) {
       uc.text_value = text;
@@ -241,20 +229,18 @@ export default {
     saveTextToLocalStorage(uc) {
       const key = this.getStorageKey();
       let history = JSON.parse(localStorage.getItem(key)) || [];
-      history = history.filter((entry) => entry !== uc.text_value); // remove duplicates
+      history = history.filter(e => e !== uc.text_value);
       history.unshift(uc.text_value);
-      localStorage.setItem(key, JSON.stringify(history.slice(0, 5))); // keep last 5
+      localStorage.setItem(key, JSON.stringify(history.slice(0, 5)));
     },
     async updateText(uc) {
       if (!uc.text_value) return;
-      await setTextValue(this.selectedCriterionId, uc.user.id, this.selectedPhaseId, uc.text_value);
+      await setTextValue(this.selectedCriterionId, uc.user.id, this.selectedSessionId, uc.text_value);
       this.saveTextToLocalStorage(uc);
     },
   },
   async mounted() {
     await Promise.all([this.fetchCriterias(), this.fetchSessions()]);
-    if (this.$route.query.criterion) this.selectedCriterionId = this.$route.query.criterion;
-    if (this.$route.query.phase) this.selectedPhaseId = this.$route.query.phase;
     await this.fetchData();
   },
 };
