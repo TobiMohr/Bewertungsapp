@@ -15,7 +15,7 @@
         <ArrowsRightLeftIcon class="h-5 w-5" />
       </BaseButton>
     </div>
-    
+
     <!-- Session & User Selection -->
     <div class="mb-6 flex flex-col md:flex-row md:items-end md:space-x-6">
       <!-- Session Select -->
@@ -65,7 +65,7 @@
         <div v-else-if="c.criterion.type === 'text'" class="flex items-center">
           <DocumentTextIcon
             class="h-6 w-6 text-indigo-500 hover:text-indigo-600 cursor-pointer"
-            :title="c.text_value ? 'Edit Text' : 'Add Text'"
+            :title="c.active_text ? 'Edit Text' : 'Add Text'"
             @click="openTextModal(c)"
           />
         </div>
@@ -96,7 +96,7 @@
       >
         <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
           <h3 class="text-lg font-semibold text-gray-800 mb-4">
-            Text für {{ activeCriterion?.criterion.name }}
+            Text for {{ activeCriterion?.criterion.name }}
           </h3>
 
           <!-- Textarea with search-history dropdown -->
@@ -195,13 +195,14 @@ export default {
     },
   },
   methods: {
-    getStorageKey(criterionId) {
-      return `criterion_text_history_${criterionId}`;
-    },
     filterHistory() {
-      const history = JSON.parse(localStorage.getItem(this.getStorageKey(this.activeCriterion.criterion_id))) || [];
+      if (!this.activeCriterion || !this.activeCriterion.last_texts) {
+        this.filteredHistory = [];
+        return;
+      }
       const search = this.textDraft.toLowerCase();
-      this.filteredHistory = history.filter(entry => entry.toLowerCase().includes(search));
+      this.filteredHistory = this.activeCriterion.last_texts
+        .filter(t => t && t.toLowerCase().includes(search));
     },
     hideDropdown() {
       setTimeout(() => (this.isTextareaActive = false), 100);
@@ -255,7 +256,7 @@ export default {
     },
     openTextModal(c) {
       this.activeCriterion = c;
-      this.textDraft = c.text_value || "";
+      this.textDraft = c.active_text || "";
       this.showTextModal = true;
       this.filterHistory();
     },
@@ -265,13 +266,6 @@ export default {
       this.textDraft = "";
       this.filteredHistory = [];
     },
-    saveTextToLocalStorage(text) {
-      const key = this.getStorageKey(this.activeCriterion.criterion_id);
-      let history = JSON.parse(localStorage.getItem(key)) || [];
-      history = history.filter(entry => entry !== text);
-      history.unshift(text);
-      localStorage.setItem(key, JSON.stringify(history.slice(0, 5)));
-    },
     async saveText() {
       if (!this.activeCriterion) return;
       await setTextValue(
@@ -280,8 +274,11 @@ export default {
         this.selectedSessionId,
         this.textDraft
       );
-      this.activeCriterion.text_value = this.textDraft;
-      this.saveTextToLocalStorage(this.textDraft);
+      // refresh from backend
+      const updated = await getUserCriterias(this.selectedUserId, this.selectedSessionId);
+      this.criteria = updated.data.sort((a, b) =>
+        a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
+      );
       this.cancelText();
     },
   },
@@ -291,14 +288,3 @@ export default {
   },
 };
 </script>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

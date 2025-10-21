@@ -91,19 +91,29 @@
               <div v-else-if="criterion?.type === 'text'" class="relative">
                 <textarea
                   v-model="uc.text_value"
-                  @input="filterHistory(uc)"
                   @focus="uc.isTextareaActive = true"
-                  @blur="() => { hideDropdown(uc); updateText(uc); }"
+                  @blur="hideDropdown(uc)"
                   class="border rounded-md p-2 w-full text-gray-700 resize-y"
                   placeholder="Enter text..."
                   rows="3"
                 />
+
+                <!-- Commit Button -->
+                <BaseButton
+                  v-if="uc.isTextareaActive"
+                  @click="updateText(uc)"
+                  class="absolute top-2 right-2 px-2 py-1 text-sm"
+                >
+                  Save
+                </BaseButton>
+
+                <!-- History Dropdown -->
                 <ul
-                  v-if="uc.isTextareaActive && uc.filteredHistory?.length"
+                  v-if="uc.isTextareaActive && uc.historyOptions?.length"
                   class="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto"
                 >
                   <li
-                    v-for="(item, index) in uc.filteredHistory"
+                    v-for="(item, index) in uc.historyOptions"
                     :key="index"
                     @mousedown.prevent="selectHistory(uc, item)"
                     class="p-2 hover:bg-gray-100 cursor-pointer"
@@ -191,52 +201,51 @@ export default {
     async fetchData() {
       if (!this.selectedCriterionId || !this.selectedSessionId) {
         this.userCriteria = [];
+        this.criterion = null;
         return;
       }
+
+      if (!this.criterias.length) await this.fetchCriterias();
+      this.criterion = this.criterias.find(c => c.id.toString() === this.selectedCriterionId);
+
       const res = await getUserCriteriasForCriterion(this.selectedCriterionId, this.selectedSessionId);
+
       this.userCriteria = res.data.map(uc => ({
         ...uc,
-        filteredHistory: [],
+        text_value: uc.active_text || "",
+        historyOptions: uc.last_texts?.slice(0, 5) || [],
         isTextareaActive: false,
-        text_value: uc.text_value || "",
       }));
-      this.criterion = this.criterias.find(c => c.id.toString() === this.selectedCriterionId);
     },
     async updateCount(uc, delta) {
       const newValue = (uc.count_value || 0) + delta;
       uc.count_value = Math.max(0, newValue);
-      if (delta > 0) await incrementUserCriterion(this.selectedCriterionId, uc.user.id, this.selectedSessionId);
-      else await decrementUserCriterion(this.selectedCriterionId, uc.user.id, this.selectedSessionId);
+      if (delta > 0)
+        await incrementUserCriterion(this.selectedCriterionId, uc.user.id, this.selectedSessionId);
+      else
+        await decrementUserCriterion(this.selectedCriterionId, uc.user.id, this.selectedSessionId);
     },
     async updateBoolean(uc) {
       await setBooleanValue(this.selectedCriterionId, uc.user.id, this.selectedSessionId, uc.is_fulfilled);
-    },
-    getStorageKey() {
-      return `criterion_text_history_${this.selectedCriterionId}`;
-    },
-    filterHistory(uc) {
-      const history = JSON.parse(localStorage.getItem(this.getStorageKey())) || [];
-      const search = (uc.text_value || "").toLowerCase();
-      uc.filteredHistory = history.filter(entry => entry.toLowerCase().includes(search));
     },
     hideDropdown(uc) {
       setTimeout(() => (uc.isTextareaActive = false), 100);
     },
     selectHistory(uc, text) {
       uc.text_value = text;
-      uc.filteredHistory = [];
-    },
-    saveTextToLocalStorage(uc) {
-      const key = this.getStorageKey();
-      let history = JSON.parse(localStorage.getItem(key)) || [];
-      history = history.filter(e => e !== uc.text_value);
-      history.unshift(uc.text_value);
-      localStorage.setItem(key, JSON.stringify(history.slice(0, 5)));
     },
     async updateText(uc) {
       if (!uc.text_value) return;
       await setTextValue(this.selectedCriterionId, uc.user.id, this.selectedSessionId, uc.text_value);
-      this.saveTextToLocalStorage(uc);
+
+      if (!uc.historyOptions) uc.historyOptions = [];
+      const existingIndex = uc.historyOptions.indexOf(uc.text_value);
+      if (existingIndex !== -1) uc.historyOptions.splice(existingIndex, 1);
+      uc.historyOptions.unshift(uc.text_value);
+      uc.historyOptions = uc.historyOptions.slice(0, 5);
+
+      uc.isTextareaActive = false;
+      this.fetchData();
     },
   },
   async mounted() {

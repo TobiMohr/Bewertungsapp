@@ -13,9 +13,6 @@ export const deleteCriterion = (id) => axios.delete(`${API_URL}/${id}`);
 export const getUserCriterias = (userId, sessionId) =>
   axios.get(`${API_URL}/user/${userId}/session/${sessionId}`);
 
-export const assignCriterionToUser = (criterionId, userId, sessionId) =>
-  axios.post(`${API_URL}/${criterionId}/assign/${userId}/session/${sessionId}`);
-
 // ----- Unified Update Endpoint -----
 /**
  * Update a user's criterion.
@@ -27,7 +24,7 @@ export const assignCriterionToUser = (criterionId, userId, sessionId) =>
  */
 export const updateUserCriterion = (criterionId, userId, sessionId, action, value = null) => {
   const url = `${API_URL}/${criterionId}/${userId}/session/${sessionId}`;
-  
+
   // For boolean/text actions, send { value } in the body
   if (action === "set_boolean" || action === "set_text") {
     return axios.put(url, { value }, { params: { action } });
@@ -51,7 +48,7 @@ export const setTextValue = (criterionId, userId, sessionId, value) =>
   updateUserCriterion(criterionId, userId, sessionId, "set_text", value);
 
 /**
- * Get all user criteria entries for a specific criterion (optionally filtered by phase)
+ * Get all user criteria entries for a specific criterion (optionally filtered by session)
  * @param {number} criterionId 
  * @param {number|null} sessionId 
  * @returns {Promise<AxiosResponse>}

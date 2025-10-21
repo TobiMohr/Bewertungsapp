@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from enum import Enum
 from .. import db
-from ..models import Criterion, User, UserCriterion, Session as SessionModel
+from ..models import Criterion, User, UserCriterion, UserCriterionText, Session as SessionModel
 from ..schemas.criterias import (
     CriterionType,
     CriterionCreate,
@@ -75,12 +75,15 @@ def get_user_criteria(user_id: int, session_id: int, session: Session = Depends(
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Fetch criteria for this session
-    data = session.query(UserCriterion).filter_by(user_id=user_id, session_id=session_id).all()
+    data = (
+        session.query(UserCriterion)
+        .options(joinedload(UserCriterion.criterion), joinedload(UserCriterion.text_values))
+        .filter_by(user_id=user_id, session_id=session_id)
+        .all()
+    )   
 
-    # Preload criterion relationships
     for uc in data:
-        _ = uc.criterion
+        uc.last_texts = [t.text_value for t in sorted(uc.text_values, key=lambda x: x.created_at, reverse=True) if not t.is_active][:5]
 
     return data
 
@@ -113,7 +116,14 @@ def update_user_criterion(
     elif action == UpdateAction.set_boolean:
         uc.is_fulfilled = bool(value)
     elif action == UpdateAction.set_text:
-        uc.text_value = str(value)
+        if not value or not isinstance(value, str):
+            raise HTTPException(status_code=400, detail="Text value must be provided")
+        # Deactivate previous text entries
+        for t in uc.text_values:
+            t.is_active = False
+        # Add new active text
+        new_text = UserCriterionText(user_criterion_id=uc.id, text_value=value, is_active=True)
+        session.add(new_text)
 
     session.commit()
     session.refresh(uc)
@@ -122,9 +132,10 @@ def update_user_criterion(
 # ----- List all UserCriterion -----
 @router.get("/usercriteria", response_model=List[UserCriterionRead])
 def list_all_user_criteria(session: Session = Depends(get_db)):
-    data = session.query(UserCriterion).all()
+    data = session.query(UserCriterion).options(joinedload(UserCriterion.criterion), joinedload(UserCriterion.text_values)).all()
     for uc in data:
-        _ = uc.criterion 
+        uc.active_text = next((t.text_value for t in uc.text_values if t.is_active), None)
+        uc.last_texts = [t.text_value for t in sorted(uc.text_values, key=lambda x: x.created_at, reverse=True) if not t.is_active][:5]
     return data
 
 # ----- Get UserCriterion for a Criterion -----
@@ -139,4 +150,5 @@ def get_user_criteria_for_criterion(
     results = query.all()
     for uc in results:
         _ = uc.user  # preload user relationship
+        uc.last_texts = [t.text_value for t in sorted(uc.text_values, key=lambda x: x.created_at, reverse=True) if not t.is_active][:5]
     return results
