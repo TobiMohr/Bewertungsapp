@@ -13,7 +13,7 @@
 <script>
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import SideBar from "./components/SideBar.vue";
+import SideBar from "./SideBar.vue";
 
 export default {
   components: { SideBar },

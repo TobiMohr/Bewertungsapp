@@ -54,12 +54,12 @@
 </template>
 
 <script>
-import { getCriterias } from "@/api/criterias";
-import { getSessions } from "@/api/sessions";
-import { getPhase } from "@/api/phases";
+import { getCriterias } from "@/live-sessions/api/criterias";
+import { getSessions } from "@/live-sessions/api/sessions";
+import { getPhase } from "@/live-sessions/api/phases";
 import { ChartBarIcon  } from "@heroicons/vue/24/solid";
-import BaseButton from "@/components/BaseComponents/BaseButton.vue";
-import BaseSelect from "@/components/BaseComponents/BaseSelect.vue";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import BaseSelect from "@/BaseComponents/BaseSelect.vue";
 
 export default {
   components: { BaseButton, BaseSelect, ChartBarIcon},

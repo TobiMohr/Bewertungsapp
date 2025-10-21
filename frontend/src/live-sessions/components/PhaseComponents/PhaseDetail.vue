@@ -176,12 +176,12 @@
 </template>
 
 <script>
-import { getCriterias } from "@/api/criterias";
-import { getPhase, updatePhase, copyPhase } from "@/api/phases";
-import BaseButton from "../BaseComponents/BaseButton.vue";
-import BaseToggle from "../BaseComponents/BaseToggle.vue";
-import BaseDialog from "../BaseComponents/BaseDialog.vue";
-import BaseInput from "../BaseComponents/BaseInput.vue";
+import { getCriterias } from "@/live-sessions/api/criterias";
+import { getPhase, updatePhase, copyPhase } from "@/live-sessions/api/phases";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import BaseToggle from "@/BaseComponents/BaseToggle.vue";
+import BaseDialog from "@/BaseComponents/BaseDialog.vue";
+import BaseInput from "@/BaseComponents/BaseInput.vue";
 import { LockClosedIcon, DocumentDuplicateIcon, PencilIcon } from "@heroicons/vue/24/solid";
 
 export default {

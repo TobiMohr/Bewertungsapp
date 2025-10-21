@@ -125,8 +125,8 @@
 </template>
 
 <script>
-import BaseSelect from "../BaseComponents/BaseSelect.vue";
-import BaseButton from "../BaseComponents/BaseButton.vue";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import BaseSelect from "@/BaseComponents/BaseSelect.vue";
 import { PlusIcon, MinusIcon, ArrowsRightLeftIcon } from "@heroicons/vue/24/solid";
 import {
   getCriterias,
@@ -135,8 +135,8 @@ import {
   decrementUserCriterion,
   setBooleanValue,
   setTextValue,
-} from "../../api/criterias";
-import { getSessions } from "../../api/sessions";
+} from "@/live-sessions/api/criterias";
+import { getSessions } from "@/live-sessions/api/sessions";
 
 export default {
   components: { BaseSelect, BaseButton, PlusIcon, MinusIcon, ArrowsRightLeftIcon },

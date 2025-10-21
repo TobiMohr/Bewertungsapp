@@ -41,10 +41,10 @@
 </template>
 
 <script>
-import BaseInput from "@/components/BaseComponents/BaseInput.vue";
-import BaseButton from "@/components/BaseComponents/BaseButton.vue";
-import BaseSelect from "@/components/BaseComponents/BaseSelect.vue";
-import { createCriterion } from "../../api/criterias";
+import BaseInput from "@/BaseComponents/BaseInput.vue";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import BaseSelect from "@/BaseComponents/BaseSelect.vue";
+import { createCriterion } from "@/live-sessions/api/criterias";
 
 export default {
   components: { BaseInput, BaseButton, BaseSelect },
