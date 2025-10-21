@@ -104,7 +104,14 @@
           </div>
 
           <div class="flex justify-end pt-4">
-            <BaseButton @click="updateCriteriaHandler">Update Criteria</BaseButton>
+            <BaseButton
+              @click="updateCriteriaHandler"
+              :disabled="!hasCriteriaChanges"
+              :variant="hasCriteriaChanges ? 'primary' : 'disabled'"
+              tooltip="Add new Criteria to session or change weights"
+            >
+              Update Criteria
+            </BaseButton>
           </div>
         </div>
 
@@ -227,6 +234,26 @@ export default {
       copyTitleInput: "",
       showEditModal: false,
     };
+  },
+  computed: {
+    hasCriteriaChanges() {
+      // Compare current toggled state and weights to the original session criteria
+      const original = Object.fromEntries(this.sessionCriteriaIds.map(id => [String(id), true]));
+
+      const toggledChanged = Object.keys(this.checkedCriteria).some(id => {
+        const current = this.checkedCriteria[id];
+        const was = original[id] || false;
+        return current !== was;
+      });
+
+      const weightChanged = Object.entries(this.criteriaWeights).some(([id, weight]) => {
+        const crit = this.session.criteria?.find(c => c.criterion?.id === Number(id));
+        const originalWeight = crit?.weight ?? 0;
+        return this.checkedCriteria[id] && weight !== originalWeight;
+      });
+
+      return toggledChanged || weightChanged;
+    },
   },
   methods: {
     handleSelect(item) {
