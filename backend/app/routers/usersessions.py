@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from ..models.roles import UserSessionRole
+from ..models.roles import UserSessionRole, Role
 from ..schemas.roles import RoleAssignRequest
 from .. import db
 
@@ -18,8 +18,11 @@ def get_db():
 def get_user_role_for_session(session_id: int, user_id: int, db: Session = Depends(get_db)):
     usr_role = db.query(UserSessionRole).filter_by(session_id=session_id, user_id=user_id).first()
     if not usr_role:
-        return {"role_id": None}
-    return {"role_id": usr_role.role_id}
+        return {"role_id": None, "role_name": None}
+
+    role = db.query(Role).filter_by(id=usr_role.role_id).first()
+    return {"role_id": usr_role.role_id, "role_name": role.name if role else None}
+
 
 
 @router.post("/{session_id}/users/{user_id}/role")

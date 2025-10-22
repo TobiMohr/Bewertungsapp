@@ -102,10 +102,14 @@ def get_user_evaluation(user_id: int, db: Session = Depends(get_db)):
                         "id": uc.criterion.id,
                         "name": uc.criterion.name,
                         "type": uc.criterion.type.value,
-                        "weight": next(
-                            (assoc.weight for assoc in session.session_criteria_assoc if assoc.criterion_id == uc.criterion.id),
-                            None
-                        ),
+                        "role_weights": [
+                            {
+                                "role_id": assoc.role_id,
+                                "weight": assoc.weight
+                            }
+                            for assoc in session.session_criteria_assoc
+                            if assoc.criterion_id == uc.criterion.id
+                        ],
                     },
                 }
                 for uc in session.user_criteria

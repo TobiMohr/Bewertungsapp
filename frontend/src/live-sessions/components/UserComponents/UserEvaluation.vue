@@ -36,6 +36,12 @@
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-2xl font-bold text-gray-800">
           Evaluation for {{ user?.first_name }} {{ user?.last_name }}
+          <span
+            class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium"
+            :class="userRoleId ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-500'"
+          >
+            {{ userRoleName || 'No Role yet' }}
+          </span>
         </h2>
       </div>
 
@@ -74,11 +80,11 @@
                 <p class="text-gray-900 font-medium">{{ uc.criterion.name }}</p>
                 <span
                   class="text-xs font-semibold px-2 py-0.5 rounded-full mt-1 self-start"
-                  :class="uc.criterion.weight === 0
+                  :class="getCriterionWeightForRole(uc.criterion) === 0
                     ? 'bg-red-100 text-red-700'
                     : 'bg-emerald-100 text-emerald-700'"
                 >
-                  Weight: {{ uc.criterion.weight }}
+                  Weight: {{ getCriterionWeightForRole(uc.criterion) }}
                 </span>
               </div>
 
@@ -109,17 +115,18 @@
               <div class="flex flex-col">
                 <p class="text-gray-900 font-medium mb-1">{{ uc.criterion.name }}</p>
                 <span
-                  class="text-xs font-semibold px-2 py-0.5 rounded-full self-start"
-                  :class="uc.criterion.weight === 0
+                  class="text-xs font-semibold px-2 py-0.5 rounded-full mt-1 self-start"
+                  :class="getCriterionWeightForRole(uc.criterion) === 0
                     ? 'bg-red-100 text-red-700'
                     : 'bg-emerald-100 text-emerald-700'"
                 >
-                  Weight: {{ uc.criterion.weight }}
+                  Weight: {{ getCriterionWeightForRole(uc.criterion) }}
                 </span>
               </div>
 
               <div class="text-gray-800 whitespace-pre-wrap break-words mt-2">
                 {{
+
                   uc.text_value.length
                     ? uc.text_value
                         .filter(tv => tv.is_active)
@@ -148,6 +155,7 @@ import BaseSelect from "@/BaseComponents/BaseSelect.vue";
 import SessionTree from "../SessionTree.vue";
 import { getUser, getUserEvaluation, getUsers } from "@/live-sessions/api/users";
 import { getSessions } from "@/live-sessions/api/sessions";
+import { getUserRoleForSession } from "@/live-sessions/api/roles";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/24/solid";
 
 export default {
@@ -160,9 +168,15 @@ export default {
       selectedUserId: null,
       userOptions: [],
       isTreeCollapsed: false,
+      userRoleId: null,
+      userRoleName: null,
+      roles: [], // if you want to fetch all roles for mapping
     };
   },
   watch: {
+    async selectedSessionId(newSessionId) {
+      await this.fetchUserRole(this.selectedUserId, newSessionId);
+    },
     async selectedUserId(newUserId) {
       if (newUserId) {
         await this.fetchUserData(newUserId);
@@ -171,6 +185,7 @@ export default {
   },
   methods: {
     sortedCriteria(item) {
+      console.log("Sorting criteria for item:", item);
       if (!item.userCriteria) return [];
       return [...item.userCriteria].sort((a, b) => {
         const order = { countable: 1, boolean: 2, text: 3 };
@@ -190,8 +205,13 @@ export default {
         this.user = userRes.data;
         this.sessions = evalRes.data;
 
-        // default selection
+        // Set selected item
         this.selectedItem = this.sessions[0] || null;
+
+        // Fetch role only after selectedItem exists
+        if (this.selectedItem) {
+          await this.fetchUserRole(userId, this.selectedItem.id);
+        }
       } catch (err) {
         console.error("Failed to fetch user data:", err);
       }
@@ -206,8 +226,42 @@ export default {
       }
     },
 
+    async fetchUserRole(userId, sessionId) {
+      console.log("fetchUserRole called with:", { userId, sessionId });
+
+      if (!userId || !sessionId) {
+        console.log("No userId or sessionId, resetting role info");
+        this.userRoleId = null;
+        this.userRoleName = null;
+        return;
+      }
+
+      try {
+        const res = await getUserRoleForSession(userId, sessionId);
+        console.log("API response from getUserRoleForSession:", res.data);
+
+        this.userRoleId = res.data.role_id || null;
+        this.userRoleName = res.data.role_name || null;
+
+        console.log("Set userRoleId:", this.userRoleId, "userRoleName:", this.userRoleName);
+      } catch (err) {
+        console.error("Failed to fetch user role:", err);
+        this.userRoleId = null;
+        this.userRoleName = null;
+      }
+    },
+
+    getCriterionWeightForRole(criterion) {
+      console.log(criterion);
+      if (!criterion.role_weights || !this.userRoleId) return criterion.weight || 0;
+
+      const roleWeight = criterion.role_weights.find(rw => rw.role_id === this.userRoleId);
+      return roleWeight ? roleWeight.weight : criterion.weight || 0;
+    },
+
     handleSelect(item) {
       this.selectedItem = item;
+      this.fetchUserRole(this.selectedUserId, item?.id);
     },
   },
   async mounted() {
@@ -219,6 +273,7 @@ export default {
     }
     const res = await getSessions();
     this.sessions = res.data;
+    await this.fetchUserRole(this.selectedUserId, this.selectedItem?.id);
   },
 };
 </script>
