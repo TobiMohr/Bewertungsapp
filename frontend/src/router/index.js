@@ -20,6 +20,10 @@ import SessionList from "@/live-sessions/components/SessionComponents/SessionLis
 import SessionForm from "@/live-sessions/components/SessionComponents/SessionForm.vue";
 import SessionEdit from "@/live-sessions/components/SessionComponents/SessionEdit.vue";
 
+// Roles
+import RoleList from "@/live-sessions/components/RoleComponents/RoleList.vue";
+import RoleForm from "@/live-sessions/components/RoleComponents/RoleForm.vue";
+
 //Files
 import FileExports from "@/live-sessions/components/FileComponents/FileExports.vue";
 
@@ -81,6 +85,20 @@ const routes = [
   {
     path: "/sessions/edit/:id",
     component: SessionEdit,
+    props: true,
+  },
+  // Roles
+  {
+    path: "/roles",
+    component: RoleList,
+  },
+  { 
+    path: "/roles/create",
+    component: RoleForm,
+  },
+  {
+    path: "/roles/edit/:id",
+    component: RoleForm,
     props: true,
   },
   // Files

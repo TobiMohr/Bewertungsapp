@@ -37,6 +37,17 @@
           placeholder="-- Select User --"
         />
       </div>
+
+      <!-- Role Selector -->
+      <div class="w-full md:w-1/4 mt-4 md:mt-0">
+        <label class="block mb-2 font-semibold">Role in Session:</label>
+        <BaseSelect
+          v-model="selectedRoleId"
+          :options="roles.map(r => ({ value: r.id.toString(), label: r.name }))"
+          placeholder="-- Select Role --"
+          @change="updateUserRole"
+        />
+      </div>
     </div>
 
     <h3 class="text-xl font-semibold text-gray-700 mb-4">Criteria</h3>
@@ -149,6 +160,11 @@ import {
   setBooleanValue,
   setTextValue,
 } from "@/live-sessions/api/criterias";
+import {
+  getRoles,
+  assignRoleToUserInSession,
+  getUserRoleForSession
+} from "@/live-sessions/api/roles";
 import { DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
@@ -167,6 +183,8 @@ export default {
       filteredHistory: [],
       isTextareaActive: false,
       session: null,
+      roles: [],
+      selectedRoleId: "",
     };
   },
   computed: {
@@ -174,7 +192,7 @@ export default {
       const flatten = (sessions, depth = 0) => {
         return sessions.flatMap(s => [
           { value: s.id.toString(), label: `${'— '.repeat(depth)}${s.title}` },
-          ...(s.children?.length ? flatten(s.children, depth + 1) : [])
+          ...(s.children?.length ? flatten(s.children, depth + 1) : []),
         ]);
       };
       return flatten(this.sessions);
@@ -187,11 +205,13 @@ export default {
     },
   },
   watch: {
-    selectedSessionId(newSessionId) {
-      this.fetchData(this.selectedUserId, newSessionId);
+    async selectedSessionId(newSessionId) {
+      await this.fetchData(this.selectedUserId, newSessionId);
+      await this.fetchUserRole(this.selectedUserId, newSessionId);
     },
-    selectedUserId(newUserId) {
-      this.fetchData(newUserId, this.selectedSessionId);
+    async selectedUserId(newUserId) {
+      await this.fetchData(newUserId, this.selectedSessionId);
+      await this.fetchUserRole(newUserId, this.selectedSessionId);
     },
   },
   methods: {
@@ -223,6 +243,24 @@ export default {
       const routeUserId = this.$route.params.id;
       if (!this.selectedUserId && routeUserId)
         this.selectedUserId = routeUserId.toString();
+    },
+    async fetchRoles() {
+      const res = await getRoles();
+      this.roles = res.data;
+    },
+    async fetchUserRole(userId, sessionId) {
+      if (!userId || !sessionId) return;
+      try {
+        const res = await getUserRoleForSession(userId, sessionId);
+        this.selectedRoleId = res.data.role_id?.toString() || "";
+      } catch (err) {
+        console.warn("No role assigned yet for this session/user.");
+        this.selectedRoleId = "";
+      }
+    },
+    async updateUserRole() {
+      if (!this.selectedUserId || !this.selectedSessionId || !this.selectedRoleId) return;
+      await assignRoleToUserInSession(this.selectedUserId, this.selectedSessionId, this.selectedRoleId);
     },
     async fetchData(userIdOverride, sessionIdOverride) {
       const userId = userIdOverride || this.selectedUserId;
@@ -274,7 +312,6 @@ export default {
         this.selectedSessionId,
         this.textDraft
       );
-      // refresh from backend
       const updated = await getUserCriterias(this.selectedUserId, this.selectedSessionId);
       this.criteria = updated.data.sort((a, b) =>
         a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
@@ -283,8 +320,13 @@ export default {
     },
   },
   async mounted() {
-    await Promise.all([this.fetchSessions(), this.fetchUsers()]);
+    await Promise.all([
+      this.fetchSessions(),
+      this.fetchUsers(),
+      this.fetchRoles(),
+    ]);
     await this.fetchData();
+    await this.fetchUserRole(this.selectedUserId, this.selectedSessionId);
   },
 };
 </script>

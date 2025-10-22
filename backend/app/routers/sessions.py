@@ -8,7 +8,8 @@ from ..models import (
     SessionCriterion,
     Criterion,
     User,
-    UserCriterion
+    UserCriterion,
+    UserSessionRole
 )
 from ..schemas import SessionCreate, SessionRead, SessionUpdate
 
@@ -27,21 +28,72 @@ def get_db():
 
 # --- Helper: create user_criteria entries for a session ---
 def create_user_criteria_for_session(db: Session, session: SessionModel):
+    """
+    Create UserCriterion entries for all users in a session,
+    taking into account their role and the weight of each criterion.
+    """
+
+    # Step 1: Fetch all users
     users = db.query(User).all()
+
+    # Step 2: Loop through all users
     for user in users:
+
+        # Step 2a: Fetch the user's role in this session (if any)
+        user_role = (
+            db.query(UserSessionRole)
+            .filter_by(user_id=user.id, session_id=session.id)
+            .first()
+        )
+        role_id = user_role.role_id if user_role else None
+
+        # Step 2b: Loop through all session criteria
         for assoc in session.session_criteria_assoc:
+
+            # Step 2c: Determine the effective weight
+            # Try role-specific weight first
+            weight_entry = (
+                db.query(SessionCriterion)
+                .filter_by(
+                    session_id=session.id,
+                    criterion_id=assoc.criterion_id,
+                    role_id=role_id
+                )
+                .first()
+            )
+            if weight_entry:
+                effective_weight = weight_entry.weight
+            else:
+                # Fallback to default weight (role_id=None)
+                default_entry = (
+                    db.query(SessionCriterion)
+                    .filter_by(
+                        session_id=session.id,
+                        criterion_id=assoc.criterion_id,
+                        role_id=None
+                    )
+                    .first()
+                )
+                effective_weight = default_entry.weight if default_entry else 1
+
+            # Step 2d: Check if UserCriterion already exists
             exists = db.query(UserCriterion).filter_by(
                 user_id=user.id,
                 criterion_id=assoc.criterion_id,
                 session_id=session.id
             ).first()
+
+            # Step 2e: Create UserCriterion if it does not exist
             if not exists:
                 uc = UserCriterion(
                     user_id=user.id,
                     criterion_id=assoc.criterion_id,
                     session_id=session.id
                 )
+                # Optional: store weight somewhere if needed in UserCriterion
+                # uc.weight = effective_weight
                 db.add(uc)
+
     db.commit()
 
 
@@ -64,6 +116,7 @@ def create_session(payload: SessionCreate, db: Session = Depends(get_db)):
             assoc = SessionCriterion(
                 session_id=session.id,
                 criterion_id=db_crit.id,
+                role_id=crit.role_id,
                 weight=crit.weight
             )
             db.add(assoc)
@@ -124,17 +177,27 @@ def update_session(session_id: int, payload: SessionUpdate, db: Session = Depend
     existing_assoc = {assoc.criterion_id: assoc for assoc in session.session_criteria_assoc}
 
     for crit in new_criteria:
-        if crit.id in existing_assoc:
-            existing_assoc[crit.id].weight = crit.weight
+        # Check if row with this session_id, criterion_id, role_id exists
+        assoc = db.query(SessionCriterion).filter_by(
+            session_id=session.id,
+            criterion_id=crit.id,
+            role_id=crit.role_id
+        ).first()
+        
+        if assoc:
+            # Only update the weight
+            assoc.weight = crit.weight
         else:
+            # Add new row
             db_crit = db.query(Criterion).filter_by(id=crit.id).first()
             if db_crit:
-                assoc = SessionCriterion(
+                new_assoc = SessionCriterion(
                     session_id=session.id,
                     criterion_id=db_crit.id,
+                    role_id=crit.role_id,
                     weight=crit.weight
                 )
-                db.add(assoc)
+                db.add(new_assoc)
 
     db.commit()
     create_user_criteria_for_session(db, session)
@@ -248,6 +311,7 @@ def session_to_dict(session: SessionModel) -> dict:
         "criteria": [
             {
                 "criterion": sc.criterion,
+                "role_id": sc.role_id,
                 "weight": sc.weight
             }
             for sc in session.session_criteria_assoc
