@@ -119,7 +119,14 @@
               </div>
 
               <div class="text-gray-800 whitespace-pre-wrap break-words mt-2">
-                {{ uc.text_value || '—' }}
+                {{
+                  uc.text_value.length
+                    ? uc.text_value
+                        .filter(tv => tv.is_active)
+                        .map(tv => tv.text_value)
+                        .join('\n')
+                    : '—'
+                }}
               </div>
             </div>
           </div>
@@ -140,6 +147,7 @@
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
 import SessionTree from "../SessionTree.vue";
 import { getUser, getUserEvaluation, getUsers } from "@/live-sessions/api/users";
+import { getSessions } from "@/live-sessions/api/sessions";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/24/solid";
 
 export default {
@@ -209,6 +217,8 @@ export default {
       this.selectedUserId = userId.toString();
       await this.fetchUserData(userId);
     }
+    const res = await getSessions();
+    this.sessions = res.data;
   },
 };
 </script>

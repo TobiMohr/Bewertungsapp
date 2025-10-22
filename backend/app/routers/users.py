@@ -97,7 +97,7 @@ def get_user_evaluation(user_id: int, db: Session = Depends(get_db)):
                     "id": uc.id,
                     "count_value": uc.count_value,
                     "is_fulfilled": uc.is_fulfilled,
-                    "text_value": uc.text_value,
+                    "text_value": uc.text_values,
                     "criterion": {
                         "id": uc.criterion.id,
                         "name": uc.criterion.name,
