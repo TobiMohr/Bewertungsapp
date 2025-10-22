@@ -60,8 +60,14 @@
 
     <h3 class="text-xl font-semibold text-gray-700 mb-4">Criteria</h3>
 
-    <!-- Criteria grid -->
-    <div v-if="criteria.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <!-- If user has no role -->
+    <div v-if="!currentRole" class="text-center p-6 bg-gray-100 rounded-lg">
+      <p class="text-gray-500 mb-4">This user has no role yet for {{ session?.title }}.</p>
+      <BaseButton @click="showRoleModal = true">Assign Role</BaseButton>
+    </div>
+
+    <!-- Criteria grid only if user has a role -->
+    <div v-else-if="criteria.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
         v-for="c in criteria"
         :key="c.id"
@@ -103,6 +109,7 @@
       </div>
     </div>
 
+    <!-- No criteria at all but user has a role -->
     <p v-else class="text-gray-500 mt-4 text-center">
       No criteria assigned to this user.
     </p>

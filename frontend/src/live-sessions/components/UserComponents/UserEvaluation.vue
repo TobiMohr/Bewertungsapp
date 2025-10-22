@@ -66,8 +66,13 @@
           {{ selectedItem.description }}
         </p>
 
-        <!-- Criteria -->
-        <div v-if="sortedCriteria(selectedItem).length">
+        <!-- Show message if user has no role -->
+        <div v-if="!userRoleId" class="text-center p-6 bg-gray-100 rounded-lg">
+          <p class="text-gray-500">User has no role yet.</p>
+        </div>
+
+        <!-- Criteria grid only if user has a role -->
+        <div v-else-if="sortedCriteria(selectedItem).length">
 
           <!-- Non-text criteria grid -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -126,7 +131,6 @@
 
               <div class="text-gray-800 whitespace-pre-wrap break-words mt-2">
                 {{
-
                   uc.text_value.length
                     ? uc.text_value
                         .filter(tv => tv.is_active)
@@ -140,6 +144,7 @@
 
         </div>
 
+        <!-- No criteria at all but user has a role -->
         <p v-else class="text-gray-500 text-center">No criteria for this session/subsession.</p>
       </div>
 
