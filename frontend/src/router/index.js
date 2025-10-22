@@ -1,31 +1,31 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 // Auth
-import RegisterForm from "../components/AuthComponents/RegisterForm.vue";
-import LoginForm from "../components/AuthComponents/LoginForm.vue";
+import RegisterForm from "@/live-sessions/components/AuthComponents/RegisterForm.vue";
+import LoginForm from "@/live-sessions/components/AuthComponents/LoginForm.vue";
 
 // Users
-import UserList from "../components/UserComponents/UserList.vue";
-import UserForm from "../components/UserComponents/UserForm.vue";
-import UserDetail from "../components/UserComponents/UserDetail.vue";
-import UserEvaluation from "@/components/UserComponents/UserEvaluation.vue";
+import UserList from "@/live-sessions/components/UserComponents/UserList.vue";
+import UserForm from "@/live-sessions/components/UserComponents/UserForm.vue";
+import UserDetail from "@/live-sessions/components/UserComponents/UserDetail.vue";
+import UserEvaluation from "@/live-sessions/components/UserComponents/UserEvaluation.vue";
 
 // Criterias
-import CriteriaList from "@/components/CriteriaComponents/CriteriaList.vue";
-import CriteriaForm from "@/components/CriteriaComponents/CriteriaForm.vue";
-import CriterionUserView from "@/components/CriteriaComponents/CriterionUserView.vue";
+import CriteriaList from "@/live-sessions/components/CriteriaComponents/CriteriaList.vue";
+import CriteriaForm from "@/live-sessions/components/CriteriaComponents/CriteriaForm.vue";
+import CriterionUserView from "@/live-sessions/components/CriteriaComponents/CriterionUserView.vue";
 
 // Sessions
-import SessionList from "@/components/SessionComponents/SessionList.vue";
-import SessionForm from "@/components/SessionComponents/SessionForm.vue";
-import SessionEdit from "@/components/SessionComponents/SessionEdit.vue";
+import SessionList from "@/live-sessions/components/SessionComponents/SessionList.vue";
+import SessionForm from "@/live-sessions/components/SessionComponents/SessionForm.vue";
+import SessionEdit from "@/live-sessions/components/SessionComponents/SessionEdit.vue";
 
 // Phases
-import PhaseDetail from "@/components/PhaseComponents/PhaseDetail.vue";
-import PhaseForm from "@/components/PhaseComponents/PhaseForm.vue";
+import PhaseDetail from "@/live-sessions/components/PhaseComponents/PhaseDetail.vue";
+import PhaseForm from "@/live-sessions/components/PhaseComponents/PhaseForm.vue";
 
 //Files
-import FileExports from "@/components/FileComponents/FileExports.vue";
+import FileExports from "@/live-sessions/components/FileComponents/FileExports.vue";
 
 
 

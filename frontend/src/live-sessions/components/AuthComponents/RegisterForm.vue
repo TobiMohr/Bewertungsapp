@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import { registerUser } from "../../api/auth";
+import { registerUser } from '@/live-sessions/api/auth';
 
 export default {
   data() {

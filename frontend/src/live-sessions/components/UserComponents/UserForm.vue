@@ -38,9 +38,9 @@
 </template>
 
 <script>
-import BaseInput from "../BaseComponents/BaseInput.vue";
-import BaseButton from "../BaseComponents/BaseButton.vue";
-import { createUser, updateUser, getUser } from "../../api/users";
+import BaseInput from "@/BaseComponents/BaseInput.vue";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import { createUser, updateUser, getUser } from "@/live-sessions/api/users";
 
 export default {
   components: { BaseInput, BaseButton },

@@ -89,9 +89,9 @@
 </template>
 
 <script>
-import { getSession, updateSession } from "../../api/sessions";
-import BaseButton from "../BaseComponents/BaseButton.vue";
-import BaseDialog from "../BaseComponents/BaseDialog.vue";
+import { getSession, updateSession } from "@/live-sessions/api/sessions";
+import BaseButton from "@/BaseComponents/BaseButton.vue";
+import BaseDialog from "@/BaseComponents/BaseDialog.vue";
 import { PencilIcon } from "@heroicons/vue/24/solid";
 
 export default {
