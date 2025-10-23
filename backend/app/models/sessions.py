@@ -57,7 +57,9 @@ class SessionCriterion(Base):
 
     session_id = Column(Integer, ForeignKey("sessions.id"), primary_key=True)
     criterion_id = Column(Integer, ForeignKey("criteria.id"), primary_key=True)
+    role_id = Column(Integer, ForeignKey("roles.id"), primary_key=True, nullable=True)
     weight = Column(Integer, nullable=False, default=1)
 
     session = relationship("Session", back_populates="session_criteria_assoc")
     criterion = relationship("Criterion", back_populates="session_criteria_assoc")
+    role = relationship("Role", back_populates="session_criteria")

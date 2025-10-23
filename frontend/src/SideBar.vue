@@ -62,6 +62,56 @@
           </ul>
         </li>
 
+        <!-- Roles Menu (NEW) -->
+        <li>
+          <button
+            @click="toggleRoles"
+            class="w-full flex items-center px-4 py-2 rounded hover:bg-gray-200"
+          >
+            <ShieldCheckIcon class="w-5 h-5 flex-shrink-0" />
+            <span
+              :class="[
+                'ml-2 whitespace-nowrap transition-opacity duration-200',
+                sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'
+              ]"
+            >
+              Roles
+            </span>
+            <ChevronRightIcon
+              v-if="!rolesOpen && sidebarOpen"
+              class="ml-auto w-4 h-4 transition-transform"
+            />
+            <ChevronDownIcon
+              v-if="rolesOpen && sidebarOpen"
+              class="ml-auto w-4 h-4 transition-transform"
+            />
+          </button>
+
+          <!-- Submenu -->
+          <ul v-show="rolesOpen && sidebarOpen" class="mt-2 ml-8 space-y-1">
+            <li>
+              <router-link
+                to="/roles"
+                class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
+                active-class="bg-gray-300 font-semibold"
+              >
+                <ListBulletIcon class="w-5 h-5 flex-shrink-0" />
+                <span class="ml-2">List</span>
+              </router-link>
+            </li>
+            <li>
+              <router-link
+                to="/roles/create"
+                class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
+                active-class="bg-gray-300 font-semibold"
+              >
+                <PlusIcon class="w-5 h-5 flex-shrink-0" />
+                <span class="ml-2">Create</span>
+              </router-link>
+            </li>
+          </ul>
+        </li>
+
         <!-- Criterias Menu -->
         <li>
           <button
@@ -162,7 +212,7 @@
           </ul>
         </li>
 
-        <!-- Files menu (NEW MAIN ENTRY) -->
+        <!-- Files menu -->
         <li>
           <router-link
             to="/files"
@@ -176,7 +226,7 @@
                 sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'
               ]"
             >
-              Files 
+              Files
             </span>
           </router-link>
         </li>
@@ -208,7 +258,8 @@ import {
   ListBulletIcon,
   PlusIcon,
   ArrowRightOnRectangleIcon,
-  ArrowUpTrayIcon 
+  ArrowUpTrayIcon,
+  ShieldCheckIcon,
 } from "@heroicons/vue/24/outline";
 
 const router = useRouter();
@@ -217,11 +268,13 @@ const sidebarOpen = ref(false);
 const usersOpen = ref(false);
 const criteriasOpen = ref(false);
 const sessionsOpen = ref(false);
+const rolesOpen = ref(false);
 
 const openSidebar = () => (sidebarOpen.value = true);
 const closeSidebar = () => (sidebarOpen.value = false);
 
 const toggleUsers = () => (usersOpen.value = !usersOpen.value);
+const toggleRoles = () => (rolesOpen.value = !rolesOpen.value);
 const toggleCriterias = () => (criteriasOpen.value = !criteriasOpen.value);
 const toggleSessions = () => (sessionsOpen.value = !sessionsOpen.value);
 
