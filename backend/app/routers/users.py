@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
+from typing import List, Optional
 from .. import db, schemas, security, models
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -25,6 +26,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     new_user = models.User(
         first_name=user.first_name,
         last_name=user.last_name,
+        team_id=user.team_id,
         email=user.email,
         password_hash=security.hash_password(user.password)
     )
@@ -60,9 +62,12 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 # --- Get all users ---
-@router.get("/", response_model=list[schemas.UserRead])
-def get_users(session: Session = Depends(get_db)):
-    return session.query(models.User).all()
+@router.get("/", response_model=List[schemas.UserRead])
+def get_users(team_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(models.User)
+    if team_id:
+        query = query.filter(models.User.team_id == team_id)
+    return query.all()
 
 
 # --- Get single user ---
@@ -131,6 +136,7 @@ def update_user(user_id: int, updated_user: schemas.UserUpdate, session: Session
     
     user.first_name = updated_user.first_name
     user.last_name = updated_user.last_name
+    user.team_id = updated_user.team_id
     user.email = updated_user.email
     
     session.commit()

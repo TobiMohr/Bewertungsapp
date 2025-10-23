@@ -20,7 +20,7 @@ class UserRead(BaseModel):
     id: int
     first_name: str
     last_name: str
-    team_id: Optional[TeamRead] = None
+    team: Optional[TeamRead] = None
     email: EmailStr
 
     class Config:
