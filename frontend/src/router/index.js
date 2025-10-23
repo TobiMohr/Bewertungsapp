@@ -10,6 +10,10 @@ import UserForm from "@/live-sessions/components/UserComponents/UserForm.vue";
 import UserDetail from "@/live-sessions/components/UserComponents/UserDetail.vue";
 import UserEvaluation from "@/live-sessions/components/UserComponents/UserEvaluation.vue";
 
+// Teams
+import TeamList from "@/live-sessions/components/TeamComponents/TeamList.vue";
+import TeamForm from "@/live-sessions/components/TeamComponents/TeamForm.vue";
+
 // Criterias
 import CriteriaList from "@/live-sessions/components/CriteriaComponents/CriteriaList.vue";
 import CriteriaForm from "@/live-sessions/components/CriteriaComponents/CriteriaForm.vue";
@@ -58,6 +62,20 @@ const routes = [
     props: true,
   },
 
+  // Teams
+  {
+    path: "/teams",
+    component: TeamList,
+  },
+  {
+    path: "/teams/create",
+    component: TeamForm,
+  },
+  { 
+    path: "/teams/edit/:id",
+    component: TeamForm,
+    props: true,
+  },
   // Criterias
   {
     path: "/criterias",
