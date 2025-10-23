@@ -38,11 +38,11 @@ class Criterion(Base):
 
     # Relationships
     users = relationship("UserCriterion", back_populates="criterion")
-    phases = relationship(
-        "Phase", secondary="phase_criteria_association", back_populates="criteria"
+    sessions = relationship(
+        "Session", secondary="session_criteria_association", back_populates="criteria"
     )
-    phase_criteria_assoc = relationship(
-        "PhaseCriterion", back_populates="criterion", cascade="all, delete-orphan"
+    session_criteria_assoc = relationship(
+        "SessionCriterion", back_populates="criterion", cascade="all, delete-orphan"
     )
 
 

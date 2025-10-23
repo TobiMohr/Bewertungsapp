@@ -10,24 +10,21 @@ export const getCriterion = (id) => axios.get(`${API_URL}/${id}`);
 export const deleteCriterion = (id) => axios.delete(`${API_URL}/${id}`);
 
 // ----- UserCriterion -----
-export const getUserCriterias = (userId, phaseId) =>
-  axios.get(`${API_URL}/user/${userId}/phase/${phaseId}`);
-
-export const assignCriterionToUser = (criterionId, userId, phaseId) =>
-  axios.post(`${API_URL}/${criterionId}/assign/${userId}/phase/${phaseId}`);
+export const getUserCriterias = (userId, sessionId) =>
+  axios.get(`${API_URL}/user/${userId}/session/${sessionId}`);
 
 // ----- Unified Update Endpoint -----
 /**
  * Update a user's criterion.
  * @param {number} criterionId 
  * @param {number} userId 
- * @param {number} phaseId 
+ * @param {number} sessionId 
  * @param {'increment'|'decrement'|'set_boolean'|'set_text'} action 
  * @param {boolean|string|null} value Optional value for boolean/text
  */
-export const updateUserCriterion = (criterionId, userId, phaseId, action, value = null) => {
-  const url = `${API_URL}/${criterionId}/${userId}/phase/${phaseId}`;
-  
+export const updateUserCriterion = (criterionId, userId, sessionId, action, value = null) => {
+  const url = `${API_URL}/${criterionId}/${userId}/session/${sessionId}`;
+
   // For boolean/text actions, send { value } in the body
   if (action === "set_boolean" || action === "set_text") {
     return axios.put(url, { value }, { params: { action } });
@@ -38,25 +35,25 @@ export const updateUserCriterion = (criterionId, userId, phaseId, action, value 
 };
 
 // ----- Convenience wrappers -----
-export const incrementUserCriterion = (criterionId, userId, phaseId) =>
-  updateUserCriterion(criterionId, userId, phaseId, "increment");
+export const incrementUserCriterion = (criterionId, userId, sessionId) =>
+  updateUserCriterion(criterionId, userId, sessionId, "increment");
 
-export const decrementUserCriterion = (criterionId, userId, phaseId) =>
-  updateUserCriterion(criterionId, userId, phaseId, "decrement");
+export const decrementUserCriterion = (criterionId, userId, sessionId) =>
+  updateUserCriterion(criterionId, userId, sessionId, "decrement");
 
-export const setBooleanValue = (criterionId, userId, phaseId, value) =>
-  updateUserCriterion(criterionId, userId, phaseId, "set_boolean", value);
+export const setBooleanValue = (criterionId, userId, sessionId, value) =>
+  updateUserCriterion(criterionId, userId, sessionId, "set_boolean", value);
 
-export const setTextValue = (criterionId, userId, phaseId, value) =>
-  updateUserCriterion(criterionId, userId, phaseId, "set_text", value);
+export const setTextValue = (criterionId, userId, sessionId, value) =>
+  updateUserCriterion(criterionId, userId, sessionId, "set_text", value);
 
 /**
- * Get all user criteria entries for a specific criterion (optionally filtered by phase)
+ * Get all user criteria entries for a specific criterion (optionally filtered by session)
  * @param {number} criterionId 
- * @param {number|null} phaseId 
+ * @param {number|null} sessionId 
  * @returns {Promise<AxiosResponse>}
  */
-export const getUserCriteriasForCriterion = (criterionId, phaseId = null) => {
-  const params = phaseId ? { phase_id: phaseId } : {};
+export const getUserCriteriasForCriterion = (criterionId, sessionId = null) => {
+  const params = sessionId ? { sessionId: sessionId } : {};
   return axios.get(`${API_URL}/${criterionId}/users`, { params });
 };

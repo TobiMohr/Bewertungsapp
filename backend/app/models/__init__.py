@@ -1,18 +1,19 @@
 from .criterias import Criterion
-from .phases import Phase, PhaseCriterion
-from .sessions import Session
-from .users import User, UserCriterion
-
-# Optionally export Base here for convenience
+from .sessions import Session, SessionCriterion
+from .users import User, UserCriterion, UserCriterionText, Team
+from .roles import Role, UserSessionRole
 from ..db import Base
 
 __all__ = (
     "User",
+    "Team",
     "Criterion",
     "Session",
-    "Phase",
     "UserCriterion",
-    "PhaseCriterion",
+    "UserCriterionText",
+    "SessionCriterion",
+    "Role",
+    "UserSessionRole",
     "Base",
 )
 
