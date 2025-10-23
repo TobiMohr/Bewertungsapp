@@ -10,20 +10,32 @@
       </router-link>
     </div>
 
-    <!-- Session selector -->
-    <div class="mb-6 w-full md:w-1/3">
-      <label class="block mb-2 font-semibold">Select Session</label>
-      <BaseSelect
-        v-model="selectedSessionId"
-        :options="sessionOptions"
-        placeholder="-- Select Session --"
-      />
+    <div class="mb-6 flex flex-col md:flex-row md:items-end md:space-x-6">
+      <!-- Session selector -->
+      <div class="w-full md:w-1/4">
+        <label class="block mb-2 font-semibold">Select Session</label>
+        <BaseSelect
+          v-model="selectedSessionId"
+          :options="sessionOptions"
+          placeholder="-- Select Session --"
+        />
+      </div>
+
+      <!-- Team selector -->
+      <div class="w-full md:w-1/4 mt-4 md:mt-0">
+        <label class="block mb-2 font-semibold">Select Team</label>
+        <BaseSelect
+          v-model="selectedTeamId"
+          :options="teamOptions"
+          placeholder="-- All Teams --"
+        />
+      </div>
     </div>
 
-    <!-- Users list (always all users) -->
+    <!-- Users list -->
     <ul class="divide-y divide-gray-200">
       <li
-        v-for="user in users"
+        v-for="user in filteredUsers"
         :key="user.id"
         class="py-4 flex items-center justify-between"
       >
@@ -69,7 +81,7 @@
     </ul>
 
     <!-- Empty state -->
-    <p v-if="users.length === 0" class="text-gray-500 mt-4 text-center">
+    <p v-if="filteredUsers.length === 0" class="text-gray-500 mt-4 text-center">
       No users found.
     </p>
 
@@ -87,18 +99,21 @@
 <script>
 import { getUsers, deleteUser } from "@/live-sessions/api/users";
 import { getSessions } from "@/live-sessions/api/sessions";
+import { getTeams } from "@/live-sessions/api/teams";
 import { PencilIcon, TrashIcon, ChartBarIcon } from "@heroicons/vue/24/solid";
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import ConfirmModal from "@/BaseComponents/ConfirmModal.vue";
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
 
 export default {
-  components: { PencilIcon, ChartBarIcon, TrashIcon, BaseButton, BaseSelect, ConfirmModal },
+  components: { PencilIcon, TrashIcon, ChartBarIcon, BaseButton, BaseSelect, ConfirmModal },
   data() {
     return {
       users: [],
       sessions: [],
+      teams: [],
       selectedSessionId: null,
+      selectedTeamId: null, // team filter
       showDeleteModal: false,
       userToDelete: null,
     };
@@ -114,6 +129,20 @@ export default {
       };
       return flattenSessions(this.sessions);
     },
+    teamOptions() {
+      return this.teams.map(team => ({ value: team.id, label: team.name }));
+    },
+    filteredUsers() {
+      // Keep session filter logic intact
+      console.log("Filtering users by team:", this.selectedTeamId);
+      console.log(this.users);
+      let filtered = this.users;
+      if (this.selectedTeamId) {
+        filtered = filtered.filter(user => user.team && user.team.id === Number(this.selectedTeamId));
+      }
+      console.log("Filtered users:", filtered);
+      return filtered;
+    },
   },
   methods: {
     async fetchSessions() {
@@ -122,6 +151,14 @@ export default {
         this.sessions = res.data;
       } catch (err) {
         console.error("Failed to load sessions:", err);
+      }
+    },
+    async fetchTeams() {
+      try {
+        const res = await getTeams();
+        this.teams = res.data;
+      } catch (err) {
+        console.error("Failed to load teams:", err);
       }
     },
     async fetchUsers() {
@@ -149,7 +186,7 @@ export default {
     },
   },
   async mounted() {
-    await Promise.all([this.fetchSessions(), this.fetchUsers()]);
+    await Promise.all([this.fetchSessions(), this.fetchTeams(), this.fetchUsers()]);
   },
 };
 </script>
