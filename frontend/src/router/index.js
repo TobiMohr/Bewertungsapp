@@ -10,6 +10,10 @@ import UserForm from "@/live-sessions/components/UserComponents/UserForm.vue";
 import UserDetail from "@/live-sessions/components/UserComponents/UserDetail.vue";
 import UserEvaluation from "@/live-sessions/components/UserComponents/UserEvaluation.vue";
 
+// Teams
+import TeamList from "@/live-sessions/components/TeamComponents/TeamList.vue";
+import TeamForm from "@/live-sessions/components/TeamComponents/TeamForm.vue";
+
 // Criterias
 import CriteriaList from "@/live-sessions/components/CriteriaComponents/CriteriaList.vue";
 import CriteriaForm from "@/live-sessions/components/CriteriaComponents/CriteriaForm.vue";
@@ -20,9 +24,9 @@ import SessionList from "@/live-sessions/components/SessionComponents/SessionLis
 import SessionForm from "@/live-sessions/components/SessionComponents/SessionForm.vue";
 import SessionEdit from "@/live-sessions/components/SessionComponents/SessionEdit.vue";
 
-// Phases
-import PhaseDetail from "@/live-sessions/components/PhaseComponents/PhaseDetail.vue";
-import PhaseForm from "@/live-sessions/components/PhaseComponents/PhaseForm.vue";
+// Roles
+import RoleList from "@/live-sessions/components/RoleComponents/RoleList.vue";
+import RoleForm from "@/live-sessions/components/RoleComponents/RoleForm.vue";
 
 //Files
 import FileExports from "@/live-sessions/components/FileComponents/FileExports.vue";
@@ -58,6 +62,20 @@ const routes = [
     props: true,
   },
 
+  // Teams
+  {
+    path: "/teams",
+    component: TeamList,
+  },
+  {
+    path: "/teams/create",
+    component: TeamForm,
+  },
+  { 
+    path: "/teams/edit/:id",
+    component: TeamForm,
+    props: true,
+  },
   // Criterias
   {
     path: "/criterias",
@@ -87,15 +105,19 @@ const routes = [
     component: SessionEdit,
     props: true,
   },
-  // Phases
+  // Roles
   {
-    path: "/phases/:id",
-    component: PhaseDetail,
-    props: true,
+    path: "/roles",
+    component: RoleList,
+  },
+  { 
+    path: "/roles/create",
+    component: RoleForm,
   },
   {
-    path: "/phases/create",
-    component: PhaseForm,
+    path: "/roles/edit/:id",
+    component: RoleForm,
+    props: true,
   },
   // Files
   {

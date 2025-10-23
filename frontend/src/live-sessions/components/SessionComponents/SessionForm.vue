@@ -1,130 +1,195 @@
 <template>
-  <div class="max-w-2xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
-    <h2 class="text-2xl font-bold text-gray-800 mb-6">Create Session</h2>
+  <div class="max-w-4xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+      {{ "Create Session" }}
+    </h2>
+
+    <!-- Show info if child session -->
+    <div v-if="session.parent_id" class="mb-4 text-sm text-gray-600 bg-gray-50 p-3 rounded">
+      This session will be created as a <strong>subsession</strong> of:
+      <span class="font-semibold">{{ parentSessionTitle }}</span>
+    </div>
 
     <form @submit.prevent="submitForm" class="space-y-6">
-      <!-- Title -->
-      <BaseInput
-        v-model="session.title"
-        placeholder="Session Title"
-        required
-      />
-
-      <!-- Description -->
-      <BaseInput
-        v-model="session.description"
-        placeholder="Description (optional)"
-      />
-
-        <!-- Criteria selection -->
+      <!-- Session Title -->
       <div>
-        <h3 class="text-lg font-semibold text-gray-700 mb-4">
-          Select Criteria
-        </h3>
-        <div class="flex flex-col space-y-3">
+        <label class="block mb-2 font-semibold">Title</label>
+        <input
+          v-model="session.title"
+          type="text"
+          class="w-full border border-gray-300 rounded-lg p-2"
+          placeholder="Session Title"
+          required
+        />
+      </div>
+
+      <!-- Session Description -->
+      <div>
+        <label class="block mb-2 font-semibold">Description</label>
+        <textarea
+          v-model="session.description"
+          class="w-full border border-gray-300 rounded-lg p-2"
+          rows="4"
+          placeholder="Description (optional)"
+        ></textarea>
+      </div>
+
+      <!-- Criteria Selection -->
+      <div>
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">Select Criteria & Weights per Role</h3>
+
+        <div class="grid grid-cols-2 gap-4">
           <div
             v-for="crit in criteria"
             :key="crit.id"
-            class="flex items-center justify-between space-x-4"
+            class="border rounded p-3 bg-gray-50"
           >
-            <span class="text-gray-800 w-1/3">{{ crit.name }}</span>
+            <div class="flex justify-between items-center mb-2">
+              <span class="font-semibold">{{ crit.name }}</span>
+              <BaseToggle v-model="checkedCriteria[crit.id]" />
+            </div>
 
-            <!-- Toggle -->
-            <BaseToggle v-model="checkedCriteria[crit.id]" />
-
-            <!-- Weight input (nur sichtbar, wenn aktiviert) -->
-            <input
-              v-if="checkedCriteria[crit.id]"
-              type="number"
-              min="1"
-              v-model.number="criteriaWeights[crit.id]"
-              class="border rounded px-2 py-1 w-20 text-center"
-            />
+            <div v-if="checkedCriteria[crit.id]" class="mt-2">
+              <div class="font-semibold mb-1">Weights:</div>
+              <div v-for="role in roles" :key="role.id" class="flex items-center justify-between mb-1">
+                <span>{{ role.name }}:</span>
+                <input
+                  type="number"
+                  min="1"
+                  v-model.number="criteriaWeightsByRole[crit.id][role.id]"
+                  class="w-16 border rounded px-1 text-center"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Buttons -->
       <div class="flex justify-between pt-4">
-        <!-- Cancel button on the left -->
-        <BaseButton
-          type="button"
-          variant="cancel"
-          @click="$router.push('/')"
-        >
+        <BaseButton type="button" variant="cancel" @click="$router.push('/sessions')">
           Cancel
         </BaseButton>
-
-        <!-- Create button on the right -->
-        <BaseButton type="submit">
-          Create
-        </BaseButton>
+        <BaseButton type="submit">{{ "Create Session" }}</BaseButton>
       </div>
     </form>
   </div>
 </template>
 
 <script>
-import BaseInput from "@/BaseComponents/BaseInput.vue";
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import BaseToggle from "@/BaseComponents/BaseToggle.vue";
 import { getCriterias } from "@/live-sessions/api/criterias";
-import { createSession } from "@/live-sessions/api/sessions";
+import { getRoles } from "@/live-sessions/api/roles";
+import { getSession, createSession } from "@/live-sessions/api/sessions";
 
 export default {
-  components: { BaseInput, BaseButton, BaseToggle },
+  components: { BaseButton, BaseToggle },
   data() {
     return {
       session: {
         title: "",
         description: "",
+        parent_id: null,
       },
+      parentSessionTitle: null,
       criteria: [],
+      roles: [],
       checkedCriteria: {},
-      criteriaWeights: {}, 
+      criteriaWeightsByRole: {},
     };
   },
   methods: {
+    async fetchRoles() {
+      const res = await getRoles();
+      this.roles = res.data || [];
+    },
     async fetchCriteria() {
-      try {
-        const res = await getCriterias();
-        this.criteria = res.data;
+      const res = await getCriterias();
+      this.criteria = res.data || [];
 
-        // Initialize checked criteria and weights
-        this.checkedCriteria = Object.fromEntries(this.criteria.map(c => [c.id, true]));
-        this.criteriaWeights = Object.fromEntries(this.criteria.map(c => [c.id, 1]));
+      // Initialize checkedCriteria defaults
+      this.checkedCriteria = Object.fromEntries(this.criteria.map(c => [c.id, true]));
+
+      // Initialize weights for all roles
+      this.criteria.forEach(c => {
+        if (!this.criteriaWeightsByRole[c.id]) this.criteriaWeightsByRole[c.id] = {};
+        this.roles.forEach(r => {
+          if (!this.criteriaWeightsByRole[c.id][r.id]) this.criteriaWeightsByRole[c.id][r.id] = 1;
+        });
+      });
+    },
+    async applyParentCriteria(parentId) {
+      if (!parentId) return;
+      try {
+        const res = await getSession(parentId);
+        const parent = res.data;
+        this.parentSessionTitle = parent?.title ?? "(unknown)";
+
+        // Map parent's criteria: { criterionId -> { roleId: weight } }
+        const parentMap = {};
+        (parent?.criteria || []).forEach(c => {
+          const cid = c.criterion.id;
+          if (!parentMap[cid]) parentMap[cid] = {};
+          parentMap[cid][c.role_id] = c.weight;
+        });
+
+        // Initialize checkedCriteria
+        this.checkedCriteria = Object.fromEntries(
+          this.criteria.map(c => [c.id, parentMap[c.id] !== undefined])
+        );
+
+        // Apply parent's weights
+        this.criteria.forEach(c => {
+          this.roles.forEach(r => {
+            this.criteriaWeightsByRole[c.id][r.id] = (parentMap[c.id] && parentMap[c.id][r.id]) || 1;
+          });
+        });
       } catch (err) {
-        console.error("Failed to load criteria", err);
+        console.warn("Failed to fetch parent session or apply criteria:", err);
       }
     },
     async submitForm() {
       try {
-        // Build payload with a single default phase
+        const criteriaPayload = [];
+        Object.entries(this.checkedCriteria)
+          .filter(([, checked]) => checked)
+          .forEach(([critId]) => {
+            const weights = this.criteriaWeightsByRole[critId];
+            Object.entries(weights).forEach(([roleId, weight]) => {
+              criteriaPayload.push({
+                id: Number(critId),
+                role_id: Number(roleId),
+                weight,
+              });
+            });
+          });
+
         const payload = {
           ...this.session,
-          phases: [
-            {
-              title: "Default Phase",
-              description: "Default Phase which is created for the session",
-              criteria: Object.entries(this.checkedCriteria)
-                .filter(([, checked]) => checked)
-                .map(([id]) => ({
-                  id: Number(id),
-                  weight: this.criteriaWeights[id] || 1,
-                })),
-            },
-          ],
+          criteria: criteriaPayload,
         };
 
         await createSession(payload);
+
         this.$router.push("/sessions");
       } catch (err) {
-        alert(err.response?.data?.detail || "Failed to create session");
+        console.error(err);
+        alert(err.response?.data?.detail || "Failed to submit session");
       }
     },
   },
-  mounted() {
-    this.fetchCriteria();
+  async mounted() {
+    await this.fetchRoles();
+    await this.fetchCriteria();
+
+    const parentId = this.$route.query.parentId ? Number(this.$route.query.parentId) : null;
+
+    if (parentId) {
+      // Create child session
+      this.session.parent_id = parentId;
+      await this.applyParentCriteria(parentId);
+    }
   },
 };
 </script>

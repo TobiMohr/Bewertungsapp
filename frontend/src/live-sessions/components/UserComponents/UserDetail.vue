@@ -1,30 +1,49 @@
 <template>
   <div class="max-w-7xl mx-auto mt-8 bg-white p-6 rounded-xl shadow-md">
 
+    <!-- Header with session, user, and role -->
     <div class="flex items-center justify-between mb-4">
-      <!-- Header -->
-      <h2 class="text-2xl font-bold text-gray-800 mb-2">
-        {{ phase?.title }} from {{ user?.first_name }} {{ user?.last_name }}
-      </h2>
+      <div class="flex items-center space-x-4">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">
+          {{ session?.title }} from {{ user?.first_name }} {{ user?.last_name }}
+        </h2>
 
-      <BaseButton
-        variant="switch"
-        @click="$router.push({ path: `/criterias/1/users`, query: { phase: selectedPhaseId } })"
-        tooltip="Switch to Criterion View"
-      >
-        <ArrowsRightLeftIcon class="h-5 w-5" />
-      </BaseButton>
+        <!-- Current role display -->
+        <span v-if="currentRole" class="px-2 py-1 bg-indigo-100 text-indigo-800 rounded font-semibold text-sm">
+          {{ currentRole.name }}
+        </span>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <!-- Switch to Criterion View -->
+        <BaseButton
+          variant="switch"
+          @click="$router.push({ path: `/criterias/1/users`, query: { session: selectedSessionId } })"
+          tooltip="Switch to Criterion View"
+        >
+          <ArrowsRightLeftIcon class="h-5 w-5" />
+        </BaseButton>
+
+        <!-- Change Role Button -->
+        <BaseButton
+          variant="edit"
+          @click="showRoleModal = true"
+          tooltip="Change Role"
+        >
+          Change Role
+        </BaseButton>
+      </div>
     </div>
-    
-    <!-- Phase & User Selection -->
+
+    <!-- Session & User Selection -->
     <div class="mb-6 flex flex-col md:flex-row md:items-end md:space-x-6">
-      <!-- Phase Select -->
+      <!-- Session Select -->
       <div class="w-full md:w-1/4">
-        <label class="block mb-2 font-semibold">Select Phase:</label>
+        <label class="block mb-2 font-semibold">Select Session:</label>
         <BaseSelect
-          v-model="selectedPhaseId"
-          :groups="phaseGroups"
-          placeholder="-- Select Phase --"
+          v-model="selectedSessionId"
+          :options="flattenedSessions"
+          placeholder="-- Select Session --"
         />
       </div>
 
@@ -41,8 +60,14 @@
 
     <h3 class="text-xl font-semibold text-gray-700 mb-4">Criteria</h3>
 
-    <!-- Criteria grid -->
-    <div v-if="criteria.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <!-- If user has no role -->
+    <div v-if="!currentRole" class="text-center p-6 bg-gray-100 rounded-lg">
+      <p class="text-gray-500 mb-4">This user has no role yet for {{ session?.title }}.</p>
+      <BaseButton @click="showRoleModal = true">Assign Role</BaseButton>
+    </div>
+
+    <!-- Criteria grid only if user has a role -->
+    <div v-else-if="criteria.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
         v-for="c in criteria"
         :key="c.id"
@@ -65,7 +90,7 @@
         <div v-else-if="c.criterion.type === 'text'" class="flex items-center">
           <DocumentTextIcon
             class="h-6 w-6 text-indigo-500 hover:text-indigo-600 cursor-pointer"
-            :title="c.text_value ? 'Edit Text' : 'Add Text'"
+            :title="c.active_text ? 'Edit Text' : 'Add Text'"
             @click="openTextModal(c)"
           />
         </div>
@@ -84,11 +109,12 @@
       </div>
     </div>
 
+    <!-- No criteria at all but user has a role -->
     <p v-else class="text-gray-500 mt-4 text-center">
       No criteria assigned to this user.
     </p>
 
-    <!-- Modal -->
+    <!-- Text Modal -->
     <transition name="fade">
       <div
         v-if="showTextModal"
@@ -96,10 +122,9 @@
       >
         <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
           <h3 class="text-lg font-semibold text-gray-800 mb-4">
-            Text für {{ activeCriterion?.criterion.name }}
+            Text for {{ activeCriterion?.criterion.name }}
           </h3>
 
-          <!-- Textarea with search-history dropdown -->
           <div class="relative">
             <textarea
               v-model="textDraft"
@@ -134,6 +159,31 @@
       </div>
     </transition>
 
+    <!-- Role Modal -->
+    <transition name="fade">
+      <div
+        v-if="showRoleModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      >
+        <div class="bg-white rounded-xl shadow-lg max-w-sm w-full p-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            Change Role for {{ user?.first_name }} {{ user?.last_name }}
+          </h3>
+
+          <BaseSelect
+            v-model="selectedRoleInModal"
+            :options="roles.map(r => ({ value: r.id.toString(), label: r.name }))"
+            placeholder="-- Select Role --"
+          />
+
+          <div class="flex justify-between mt-6">
+            <BaseButton variant="cancel" @click="showRoleModal = false">Cancel</BaseButton>
+            <BaseButton @click="saveRole">Save</BaseButton>
+          </div>
+        </div>
+      </div>
+    </transition>
+
   </div>
 </template>
 
@@ -141,8 +191,7 @@
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
 import { getUsers, getUser } from "@/live-sessions/api/users";
-import { getPhase } from "@/live-sessions/api/phases";
-import { getSessions } from "@/live-sessions/api/sessions";
+import { getSessions, getSession } from "@/live-sessions/api/sessions";
 import {
   getUserCriterias,
   incrementUserCriterion,
@@ -150,6 +199,11 @@ import {
   setBooleanValue,
   setTextValue,
 } from "@/live-sessions/api/criterias";
+import {
+  getRoles,
+  assignRoleToUserInSession,
+  getUserRoleForSession
+} from "@/live-sessions/api/roles";
 import { DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
@@ -157,7 +211,7 @@ export default {
   data() {
     return {
       sessions: [],
-      selectedPhaseId: "",
+      selectedSessionId: "",
       users: [],
       user: null,
       selectedUserId: "",
@@ -167,63 +221,43 @@ export default {
       textDraft: "",
       filteredHistory: [],
       isTextareaActive: false,
-      phase: null,
+      session: null,
+      roles: [],
+      currentRole: null,
+      showRoleModal: false,
+      selectedRoleInModal: "",
     };
   },
   computed: {
-    phaseGroups() {
-      const flattenPhases = (phases, depth = 0) => {
-        return phases.flatMap(phase => [
-          {
-            value: phase.id.toString(),
-            label: `${"— ".repeat(depth)}${phase.title}`,
-          },
-          ...(phase.children?.length ? flattenPhases(phase.children, depth + 1) : []),
+    flattenedSessions() {
+      const flatten = (sessions, depth = 0) => {
+        return sessions.flatMap(s => [
+          { value: s.id.toString(), label: `${'— '.repeat(depth)}${s.title}` },
+          ...(s.children?.length ? flatten(s.children, depth + 1) : []),
         ]);
       };
-
-      return this.sessions.map(session => ({
-        label: session.title,
-        options: flattenPhases(session.phases || []),
-      }));
+      return flatten(this.sessions);
     },
-
     userOptions() {
-      return this.users.map(u => ({
-        value: u.id.toString(),
-        label: `${u.first_name} ${u.last_name}`,
-      }));
+      return this.users.map(u => ({ value: u.id.toString(), label: `${u.first_name} ${u.last_name}` }));
     },
   },
   watch: {
-    selectedPhaseId(newPhaseId) {
-      this.fetchData(this.selectedUserId, newPhaseId);
+    async selectedSessionId(newSessionId) {
+      await this.fetchData(this.selectedUserId, newSessionId);
+      await this.fetchUserRole(this.selectedUserId, newSessionId);
     },
-    selectedUserId(newUserId) {
-      this.fetchData(newUserId, this.selectedPhaseId);
+    async selectedUserId(newUserId) {
+      await this.fetchData(newUserId, this.selectedSessionId);
+      await this.fetchUserRole(newUserId, this.selectedSessionId);
     },
   },
   methods: {
-    getStorageKey(criterionId) {
-      return `criterion_text_history_${criterionId}`;
-    },
-    filterHistory() {
-      const history = JSON.parse(localStorage.getItem(this.getStorageKey(this.activeCriterion.criterion_id))) || [];
-      const search = this.textDraft.toLowerCase();
-      this.filteredHistory = history.filter(entry => entry.toLowerCase().includes(search));
-    },
-    hideDropdown() {
-      setTimeout(() => (this.isTextareaActive = false), 100);
-    },
-    selectHistory(item) {
-      this.textDraft = item;
-      this.filteredHistory = [];
-    },
     async fetchSessions() {
       const res = await getSessions();
       this.sessions = res.data;
-      const routePhaseId = this.$route.query.phase;
-      if (routePhaseId) this.selectedPhaseId = routePhaseId.toString();
+      const routeSessionId = this.$route.query.session;
+      if (routeSessionId) this.selectedSessionId = routeSessionId.toString();
     },
     async fetchUsers() {
       const res = await getUsers();
@@ -232,19 +266,51 @@ export default {
       if (!this.selectedUserId && routeUserId)
         this.selectedUserId = routeUserId.toString();
     },
-    async fetchData(userIdOverride, phaseIdOverride) {
+    async fetchRoles() {
+      const res = await getRoles();
+      this.roles = res.data;
+    },
+    async fetchUserRole(userId, sessionId) {
+      if (!userId || !sessionId) return;
+      try {
+        const res = await getUserRoleForSession(userId, sessionId);
+        const roleId = res.data.role_id;
+        this.currentRole = this.roles.find(r => r.id === roleId) || null;
+        this.selectedRoleInModal = roleId?.toString() || "";
+      } catch (err) {
+        this.currentRole = null;
+        this.selectedRoleInModal = "";
+      }
+    },
+    async saveRole() {
+      if (!this.selectedRoleInModal) return;
+      await assignRoleToUserInSession(this.selectedUserId, this.selectedSessionId, this.selectedRoleInModal);
+      await this.fetchUserRole(this.selectedUserId, this.selectedSessionId);
+      this.showRoleModal = false;
+    },
+    filterHistory() {
+      if (!this.activeCriterion || !this.activeCriterion.last_texts) {
+        this.filteredHistory = [];
+        return;
+      }
+      const search = this.textDraft.toLowerCase();
+      this.filteredHistory = this.activeCriterion.last_texts.filter(t => t && t.toLowerCase().includes(search));
+    },
+    hideDropdown() { setTimeout(() => (this.isTextareaActive = false), 100); },
+    selectHistory(item) { this.textDraft = item; this.filteredHistory = []; },
+    async fetchData(userIdOverride, sessionIdOverride) {
       const userId = userIdOverride || this.selectedUserId;
-      const phaseId = phaseIdOverride || this.selectedPhaseId;
-      if (!phaseId || !userId) return;
+      const sessionId = sessionIdOverride || this.selectedSessionId;
+      if (!sessionId || !userId) return;
 
-      const [userRes, critRes, phaseRes] = await Promise.all([
+      const [userRes, critRes, sessionRes] = await Promise.all([
         getUser(userId),
-        getUserCriterias(userId, phaseId),
-        getPhase(phaseId),
+        getUserCriterias(userId, sessionId),
+        getSession(sessionId),
       ]);
 
       this.user = userRes.data;
-      this.phase = phaseRes.data;
+      this.session = sessionRes.data;
       this.criteria = critRes.data.sort((a, b) =>
         a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
       );
@@ -252,19 +318,19 @@ export default {
     async increment(id) {
       const crit = this.criteria.find(c => c.criterion_id === id);
       if (crit) crit.count_value = (crit.count_value || 0) + 1;
-      await incrementUserCriterion(id, this.selectedUserId, this.selectedPhaseId);
+      await incrementUserCriterion(id, this.selectedUserId, this.selectedSessionId);
     },
     async decrement(id) {
       const crit = this.criteria.find(c => c.criterion_id === id);
       if (crit) crit.count_value = Math.max((crit.count_value || 0) - 1, 0);
-      await decrementUserCriterion(id, this.selectedUserId, this.selectedPhaseId);
+      await decrementUserCriterion(id, this.selectedUserId, this.selectedSessionId);
     },
     async toggleBoolean(id, value) {
-      await setBooleanValue(id, this.selectedUserId, this.selectedPhaseId, !!value);
+      await setBooleanValue(id, this.selectedUserId, this.selectedSessionId, !!value);
     },
     openTextModal(c) {
       this.activeCriterion = c;
-      this.textDraft = c.text_value || "";
+      this.textDraft = c.active_text || "";
       this.showTextModal = true;
       this.filterHistory();
     },
@@ -274,40 +340,25 @@ export default {
       this.textDraft = "";
       this.filteredHistory = [];
     },
-    saveTextToLocalStorage(text) {
-      const key = this.getStorageKey(this.activeCriterion.criterion_id);
-      let history = JSON.parse(localStorage.getItem(key)) || [];
-      history = history.filter(entry => entry !== text);
-      history.unshift(text);
-      localStorage.setItem(key, JSON.stringify(history.slice(0, 5)));
-    },
     async saveText() {
       if (!this.activeCriterion) return;
       await setTextValue(
         this.activeCriterion.criterion_id,
         this.selectedUserId,
-        this.selectedPhaseId,
+        this.selectedSessionId,
         this.textDraft
       );
-      this.activeCriterion.text_value = this.textDraft;
-      this.saveTextToLocalStorage(this.textDraft);
+      const updated = await getUserCriterias(this.selectedUserId, this.selectedSessionId);
+      this.criteria = updated.data.sort((a, b) =>
+        a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
+      );
       this.cancelText();
     },
   },
   async mounted() {
-    await Promise.all([this.fetchSessions(), this.fetchUsers()]);
+    await Promise.all([this.fetchSessions(), this.fetchUsers(), this.fetchRoles()]);
     await this.fetchData();
+    await this.fetchUserRole(this.selectedUserId, this.selectedSessionId);
   },
 };
 </script>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>
