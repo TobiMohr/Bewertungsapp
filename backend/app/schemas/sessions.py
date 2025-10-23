@@ -1,29 +1,39 @@
-# schemas/sessions.py
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
-from .criterias import CriterionWithWeightCreate
-from .phases import PhaseRead, PhaseCreate
+from .criterias import CriterionWithWeightCreate, CriterionWithWeightRead
+
 
 # --- Session Base ---
 class SessionBase(BaseModel):
     title: str
     description: Optional[str] = None
 
+
 # --- Session Create ---
 class SessionCreate(SessionBase):
-    phases: Optional[List[PhaseCreate]] = []
+    parent_id: Optional[int] = None
+    criteria: Optional[List[CriterionWithWeightCreate]] = []
+
 
 # --- Session Update ---
 class SessionUpdate(SessionBase):
-    phases: Optional[List[PhaseCreate]] = []
+    parent_id: Optional[int] = None
+    criteria: Optional[List[CriterionWithWeightCreate]] = None
+
 
 # --- Session Read ---
 class SessionRead(SessionBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    phases: List[PhaseRead] = []
+    parent_id: Optional[int] = None
+    criteria: List[CriterionWithWeightRead] = []
+    children: List["SessionRead"] = []
 
     class Config:
-        orm_mode = True 
+        orm_mode = True
+
+
+# Required for self-referencing models
+SessionRead.model_rebuild()

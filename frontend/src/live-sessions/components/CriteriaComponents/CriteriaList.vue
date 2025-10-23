@@ -10,20 +10,20 @@
       </router-link>
     </div>
 
-    <!-- Phase selector -->
+    <!-- Session selector -->
     <div class="mb-6 w-full md:w-1/3">
-      <label class="block mb-2 font-semibold">Select Phase</label>
+      <label class="block mb-2 font-semibold">Select Session</label>
       <BaseSelect
-        v-model="selectedPhaseId"
-        :groups="phaseGroups"
-        placeholder="-- All Phases --"
+        v-model="selectedSessionId"
+        :options="sessionOptions"
+        placeholder="-- Select Session --"
       />
     </div>
 
     <!-- Criteria list -->
     <ul class="divide-y divide-gray-200">
       <li
-        v-for="crit in criterias"
+        v-for="crit in selectedSessionId ? criterias : allCriterias"
         :key="crit.id"
         class="py-4 flex items-center justify-between"
       >
@@ -36,7 +36,8 @@
 
         <div>
           <BaseButton
-            @click="$router.push({ path: `/criterias/${crit.id}/users`, query: { phase: selectedPhaseId } })"
+            :disabled="!selectedSessionId"
+            @click="$router.push({ path: `/criterias/${crit.id}/users`, query: { session: selectedSessionId } })"
             class="p-2 rounded-full"
             tooltip="Edit for Users"
           >
@@ -46,45 +47,45 @@
       </li>
     </ul>
 
-    <!-- Empty state -->
-    <p v-if="criterias.length === 0" class="text-gray-500 mt-4 text-center">
-      No criteria found for this phase.
+    <!-- Empty state if no criteria for this session -->
+    <p v-if="selectedSessionId && criterias.length === 0" class="text-gray-500 mt-4 text-center">
+      This session has no criteria assigned.
     </p>
   </div>
 </template>
 
 <script>
-import { getCriterias } from "@/live-sessions/api/criterias";
 import { getSessions } from "@/live-sessions/api/sessions";
-import { getPhase } from "@/live-sessions/api/phases";
-import { ChartBarIcon  } from "@heroicons/vue/24/solid";
+import { getCriterias } from "@/live-sessions/api/criterias";
+import { ChartBarIcon } from "@heroicons/vue/24/solid";
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
 
 export default {
-  components: { BaseButton, BaseSelect, ChartBarIcon},
+  components: { BaseButton, BaseSelect, ChartBarIcon },
   data() {
     return {
-      criterias: [],
       sessions: [],
-      selectedPhaseId: null,
+      criterias: [],       // criteria for selected session
+      allCriterias: [],    // all criteria
+      selectedSessionId: null,
     };
   },
   computed: {
-    phaseGroups() {
-      return this.sessions.map(session => ({
-        label: session.title,
-        options: session.phases.map(phase => ({
-          value: phase.id.toString(),
-          label: phase.title,
-        })),
-      }));
-    },
+    sessionOptions() {
+      const flattenSessions = (sessions, depth = 0) => {
+        return sessions.flatMap(s => [
+          { value: s.id.toString(), label: `${"— ".repeat(depth)}${s.title}` },
+          ...(s.children ? flattenSessions(s.children, depth + 1) : [])
+        ]);
+      };
+      return flattenSessions(this.sessions);
+    }
   },
   watch: {
-    selectedPhaseId() {
-      this.fetchCriteriasByPhase();
-    },
+    selectedSessionId() {
+      this.fetchCriteriasBySession();
+    }
   },
   methods: {
     async fetchSessions() {
@@ -96,40 +97,42 @@ export default {
       }
     },
 
-    async fetchCriterias() {
+    async fetchAllCriterias() {
       try {
         const res = await getCriterias();
-        this.criterias = res.data.sort((a, b) =>
+        this.allCriterias = res.data.sort((a, b) =>
           a.name.localeCompare(b.name, "en", { sensitivity: "base" })
         );
       } catch (err) {
-        console.error("Failed to load criterias:", err);
+        console.error("Failed to load all criterias:", err);
       }
     },
 
-    async fetchCriteriasByPhase() {
-      try {
-        if (!this.selectedPhaseId) {
-          // no phase selected → show all criteria
-          await this.fetchCriterias();
-        } else {
-          const res = await getPhase(Number(this.selectedPhaseId));
-          const phaseCriteriaIds = res.data.criteria.map(c => c.criterion.id);
-
-          const allRes = await getCriterias();
-          this.criterias = allRes.data
-            .filter(c => phaseCriteriaIds.includes(c.id))
-            .sort((a, b) =>
-              a.name.localeCompare(b.name, "en", { sensitivity: "base" })
-            );
-        }
-      } catch (err) {
-        console.error("Failed to load criteria for phase:", err);
+    async fetchCriteriasBySession() {
+      if (!this.selectedSessionId) {
+        // No session selected → show all criteria
+        this.criterias = this.allCriterias;
+        return;
       }
-    },
+
+      const sessionIdNum = Number(this.selectedSessionId);
+      const flattenAllSessions = (sessions) =>
+        sessions.flatMap(s => [s, ...(s.children ? flattenAllSessions(s.children) : [])]);
+
+      const allSessions = flattenAllSessions(this.sessions);
+      const session = allSessions.find(s => s.id === sessionIdNum);
+
+      this.criterias = session
+        ? session.criteria.map(c => c.criterion)
+            .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }))
+        : [];
+    }
   },
   async mounted() {
-    await Promise.all([this.fetchSessions(), this.fetchCriteriasByPhase()]);
-  },
+    await this.fetchSessions();
+    await this.fetchAllCriterias();
+    // initially show all criteria
+    this.criterias = this.allCriterias;
+  }
 };
 </script>

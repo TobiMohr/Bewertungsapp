@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from enum import Enum
 from .. import db
-from ..models import Criterion, User, UserCriterion, Phase
+from ..models import Criterion, User, UserCriterion, UserCriterionText, Session as SessionModel
 from ..schemas.criterias import (
     CriterionType,
     CriterionCreate,
@@ -29,29 +29,23 @@ def get_db():
 
 # ----- Helper Functions -----
 def get_or_404(session: Session, model, id: int, name: str):
-    obj = session.query(model).get(id)
+    obj = session.get(model, id)
     if not obj:
         raise HTTPException(status_code=404, detail=f"{name} not found")
     return obj
 
-def get_or_create_usercriterion(session: Session, user_id: int, criterion_id: int, phase_id: int):
+def get_or_create_usercriterion(session: Session, user_id: int, criterion_id: int, session_id: int):
     uc = (
         session.query(UserCriterion)
-        .filter_by(user_id=user_id, criterion_id=criterion_id, phase_id=phase_id)
+        .filter_by(user_id=user_id, criterion_id=criterion_id, session_id=session_id)
         .first()
     )
     if not uc:
-        uc = UserCriterion(user_id=user_id, criterion_id=criterion_id, phase_id=phase_id)
+        uc = UserCriterion(user_id=user_id, criterion_id=criterion_id, session_id=session_id)
         session.add(uc)
         session.commit()
         session.refresh(uc)
     return uc
-
-def get_user_criteria_recursive(phase: Phase, user_id: int, session: Session) -> List[UserCriterion]:
-    data = session.query(UserCriterion).filter_by(user_id=user_id, phase_id=phase.id).all()
-    for child in phase.children:
-        data.extend(get_user_criteria_recursive(child, user_id, session))
-    return data
 
 # ----- Criterion -----
 @router.post("/", response_model=CriterionRead)
@@ -74,19 +68,22 @@ def list_criteria(session: Session = Depends(get_db)):
     return session.query(Criterion).all()
 
 # ----- UserCriterion -----
-@router.get("/user/{user_id}/phase/{phase_id}", response_model=List[UserCriterionRead])
-def get_user_criteria(user_id: int, phase_id: int, session: Session = Depends(get_db)):
-    # Ensure phase exists
-    phase = session.query(Phase).filter(Phase.id == phase_id).first()
-    if not phase:
-        raise HTTPException(status_code=404, detail="Phase not found")
+@router.get("/user/{user_id}/session/{session_id}", response_model=List[UserCriterionRead])
+def get_user_criteria(user_id: int, session_id: int, session: Session = Depends(get_db)):
+    # Ensure session exists
+    db_session = session.query(SessionModel).filter(SessionModel.id == session_id).first()
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Session not found")
 
-    # Only fetch criteria for this phase (no recursion)
-    data = session.query(UserCriterion).filter_by(user_id=user_id, phase_id=phase.id).all()
+    data = (
+        session.query(UserCriterion)
+        .options(joinedload(UserCriterion.criterion), joinedload(UserCriterion.text_values))
+        .filter_by(user_id=user_id, session_id=session_id)
+        .all()
+    )   
 
-    # Preload criterion relationships
     for uc in data:
-        _ = uc.criterion
+        uc.last_texts = [t.text_value for t in sorted(uc.text_values, key=lambda x: x.created_at, reverse=True) if not t.is_active][:5]
 
     return data
 
@@ -97,20 +94,20 @@ class UpdateAction(str, Enum):
     set_boolean = "set_boolean"
     set_text = "set_text"
 
-@router.put("/{criterion_id}/{user_id}/phase/{phase_id}", response_model=UserCriterionRead)
+@router.put("/{criterion_id}/{user_id}/session/{session_id}", response_model=UserCriterionRead)
 def update_user_criterion(
     criterion_id: int,
     user_id: int,
-    phase_id: int,
+    session_id: int,
     action: UpdateAction = Query(...),
     payload: Optional[UserCriterionUpdate] = Body(None),
     session: Session = Depends(get_db)
 ):
     criterion = get_or_404(session, Criterion, criterion_id, "Criterion")
-    phase = get_or_404(session, Phase, phase_id, "Phase")
-    uc = get_or_create_usercriterion(session, user_id, criterion_id, phase_id)
+    db_session = get_or_404(session, SessionModel, session_id, "Session")
+    uc = get_or_create_usercriterion(session, user_id, criterion_id, session_id)
 
-    value = payload.value if payload else None
+    value = getattr(payload, "value", None)
 
     if action == UpdateAction.increment:
         uc.count_value = (uc.count_value or 0) + 1
@@ -119,7 +116,14 @@ def update_user_criterion(
     elif action == UpdateAction.set_boolean:
         uc.is_fulfilled = bool(value)
     elif action == UpdateAction.set_text:
-        uc.text_value = str(value)
+        if not value or not isinstance(value, str):
+            raise HTTPException(status_code=400, detail="Text value must be provided")
+        # Deactivate previous text entries
+        for t in uc.text_values:
+            t.is_active = False
+        # Add new active text
+        new_text = UserCriterionText(user_criterion_id=uc.id, text_value=value, is_active=True)
+        session.add(new_text)
 
     session.commit()
     session.refresh(uc)
@@ -128,21 +132,23 @@ def update_user_criterion(
 # ----- List all UserCriterion -----
 @router.get("/usercriteria", response_model=List[UserCriterionRead])
 def list_all_user_criteria(session: Session = Depends(get_db)):
-    data = session.query(UserCriterion).all()
+    data = session.query(UserCriterion).options(joinedload(UserCriterion.criterion), joinedload(UserCriterion.text_values)).all()
     for uc in data:
-        _ = uc.criterion 
+        uc.active_text = next((t.text_value for t in uc.text_values if t.is_active), None)
+        uc.last_texts = [t.text_value for t in sorted(uc.text_values, key=lambda x: x.created_at, reverse=True) if not t.is_active][:5]
     return data
 
 # ----- Get UserCriterion for a Criterion -----
 @router.get("/{criterion_id}/users", response_model=List[UserCriterionRead])
 def get_user_criteria_for_criterion(
-    criterion_id: int, phase_id: Optional[int] = None, session: Session = Depends(get_db)
+    criterion_id: int, session_id: Optional[int] = None, session: Session = Depends(get_db)
 ):
     query = session.query(UserCriterion).join(User).filter(UserCriterion.criterion_id == criterion_id)
-    if phase_id:
-        query = query.filter(UserCriterion.phase_id == phase_id)
+    if session_id:
+        query = query.filter(UserCriterion.session_id == session_id)
     
     results = query.all()
     for uc in results:
         _ = uc.user  # preload user relationship
+        uc.last_texts = [t.text_value for t in sorted(uc.text_values, key=lambda x: x.created_at, reverse=True) if not t.is_active][:5]
     return results
