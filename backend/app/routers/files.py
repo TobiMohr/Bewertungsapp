@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import pandas as pd
 from io import BytesIO
 from datetime import datetime
+from sqlalchemy import text
 
 from .. import db, models
 from ..security import hash_password  # for default passwords on users
@@ -318,6 +319,26 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
                     db.add(uc)
                     db.flush()
             db.commit()
+
+        # Ensure auto-increment sequences continue from the correct ID
+        try:
+            sequence_resets = [
+                ("users", "users_id_seq"),
+                ("teams", "teams_id_seq"),
+                ("roles", "roles_id_seq"),
+                ("criteria", "criteria_id_seq"),
+                ("sessions", "sessions_id_seq"),
+                ("user_criteria", "user_criteria_id_seq"),
+                ("user_criterion_texts", "user_criterion_texts_id_seq"),
+            ]
+
+            for table, seq in sequence_resets:
+                db.execute(
+                    text(f"SELECT setval('{seq}', (SELECT COALESCE(MAX(id), 0) + 1 FROM {table}), false)")
+                )
+            db.commit()
+        except Exception as seq_err:
+            print(f"Warning: Failed to reset sequences — {seq_err}")
 
         return {"message": "Import completed successfully."}
 

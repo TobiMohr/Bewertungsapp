@@ -122,10 +122,15 @@ export default {
       const allSessions = flattenAllSessions(this.sessions);
       const session = allSessions.find(s => s.id === sessionIdNum);
 
-      this.criterias = session
-        ? session.criteria.map(c => c.criterion)
-            .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }))
-        : [];
+      console.log("Selected sessions criteria:", session.criteria);
+
+      const uniqueCriteria = Array.from(
+        new Map(session.criteria.map(c => [c.criterion.id, c.criterion])).values()
+      );
+
+      this.criterias = uniqueCriteria.sort((a, b) =>
+        a.name.localeCompare(b.name, "en", { sensitivity: "base" })
+      );
     }
   },
   async mounted() {
