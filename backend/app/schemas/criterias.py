@@ -30,6 +30,7 @@ class CriterionRead(CriterionBase):
 
 class CriterionWithWeightRead(BaseModel):
     criterion: CriterionRead
+    role_id: int
     weight: int
 
     class Config:
@@ -38,6 +39,7 @@ class CriterionWithWeightRead(BaseModel):
 
 class CriterionWithWeightCreate(BaseModel):
     id: int
+    role_id: int
     weight: int = 1
 
 
