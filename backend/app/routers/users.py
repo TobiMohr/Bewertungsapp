@@ -49,6 +49,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
                         session_id=sess.id
                     )
                     db.add(uc)
+                    db.commit()
             if sess.children:
                 create_user_criteria_for_all_sessions(sess.children)
 
