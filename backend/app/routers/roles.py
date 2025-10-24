@@ -19,7 +19,7 @@ def get_db():
         db_sess.close()
 
 # --- CREATE Role ---
-@router.post("/", response_model=RoleRead)
+@router.post("", response_model=RoleRead)
 def create_role(payload: RoleCreate, db: Session = Depends(get_db)):
     existing = db.query(Role).filter_by(name=payload.name).first()
     if existing:
@@ -38,7 +38,7 @@ def create_role(payload: RoleCreate, db: Session = Depends(get_db)):
     return role
 
 # --- READ ALL Roles ---
-@router.get("/", response_model=List[RoleRead])
+@router.get("", response_model=List[RoleRead])
 def get_roles(db: Session = Depends(get_db)):
     roles = db.query(Role).all()
     result = []
