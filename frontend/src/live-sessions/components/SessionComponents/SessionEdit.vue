@@ -253,8 +253,21 @@ export default {
     openCopyDialog() { this.copyTitleInput = `${this.form.title} (Copy)`; this.showCopyDialog = true; },
     async confirmCopySession() {
       if (!this.copyTitleInput.trim()) return;
-      try { await copySession(this.session.id, this.copyTitleInput); this.showCopyDialog = false; this.$router.push(`/sessions/edit/${this.session.id}`); }
-      catch (err) { console.error(err); alert("Failed to copy session"); }
+      try {
+        // Call API and get new session
+        const res = await copySession(this.session.id, this.copyTitleInput);
+        const newSession = res.data; // assume backend returns the new session object
+        this.showCopyDialog = false;
+
+        // Navigate to new session edit page
+        this.$router.push(`/sessions/edit/${newSession.id}`);
+        
+        // Optionally reload the sessions tree so the new session appears
+        await this.loadSessionsTree();
+      } catch (err) {
+        console.error(err);
+        alert("Failed to copy session");
+      }
     },
     openEditModal() { this.editForm.title = this.form.title; this.editForm.description = this.form.description; this.showEditModal = true; },
     async updateSessionHandler() {
