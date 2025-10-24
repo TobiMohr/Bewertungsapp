@@ -14,7 +14,7 @@ def get_db():
 
 
 # --- Create team ---
-@router.post("/", response_model=schemas.TeamRead)
+@router.post("", response_model=schemas.TeamRead)
 def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db)):
     existing_team = db.query(models.Team).filter(models.Team.name == team.name).first()
     if existing_team:
@@ -28,7 +28,7 @@ def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db)):
 
 
 # --- Get all teams ---
-@router.get("/", response_model=list[schemas.TeamRead])
+@router.get("", response_model=list[schemas.TeamRead])
 def get_teams(db: Session = Depends(get_db)):
     return db.query(models.Team).all()
 

@@ -61,7 +61,7 @@ def create_user_criteria_for_session(db: Session, session: SessionModel):
 
 
 # --- CREATE ---
-@router.post("/", response_model=SessionRead)
+@router.post("", response_model=SessionRead)
 def create_session(payload: SessionCreate, db: Session = Depends(get_db)):
     session = SessionModel(
         title=payload.title,
@@ -97,7 +97,7 @@ def create_session(payload: SessionCreate, db: Session = Depends(get_db)):
 
 
 # --- READ ALL ---
-@router.get("/", response_model=List[SessionRead])
+@router.get("", response_model=List[SessionRead])
 def get_sessions(db: Session = Depends(get_db)):
     sessions = db.query(SessionModel).options(
         joinedload(SessionModel.session_criteria_assoc).joinedload(SessionCriterion.criterion),

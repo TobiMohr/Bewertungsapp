@@ -174,6 +174,7 @@
             v-model="selectedRoleInModal"
             :options="roles.map(r => ({ value: r.id.toString(), label: r.name }))"
             placeholder="-- Select Role --"
+            :showPlaceholder="true"
           />
 
           <div class="flex justify-between mt-6">
