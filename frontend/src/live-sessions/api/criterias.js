@@ -6,6 +6,7 @@ const API_URL = `${API_BASE}/criteria`;
 // ----- Criterion -----
 export const getCriterias = () => axios.get(API_URL);
 export const createCriterion = (criterion) => axios.post(API_URL, criterion);
+export const updateCriterion = (id, data) => axios.put(`${API_URL}/${id}`, data);
 export const getCriterion = (id) => axios.get(`${API_URL}/${id}`);
 export const deleteCriterion = (id) => axios.delete(`${API_URL}/${id}`);
 

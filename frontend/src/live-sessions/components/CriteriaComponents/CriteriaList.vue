@@ -40,6 +40,16 @@
         </div>
 
         <div class="flex items-center space-x-2">
+          <!-- Edit criterion button -->
+          <BaseButton
+            @click="$router.push(`/criterias/edit/${crit.id}`)"
+            class="p-2 rounded-full"
+            variant="edit"
+            tooltip="Edit criterion"
+          >
+            <PencilIcon class="h-5 w-5" />
+          </BaseButton>
+
           <BaseButton
             :disabled="!selectedSessionId"
             @click="$router.push({ path: `/criterias/${crit.id}/users`, query: { session: selectedSessionId } })"
@@ -83,13 +93,13 @@
 <script>
 import { getSessions } from "@/live-sessions/api/sessions";
 import { getCriterias, deleteCriterion } from "@/live-sessions/api/criterias";
-import { ChartBarIcon, TrashIcon } from "@heroicons/vue/24/solid";
+import { ChartBarIcon, TrashIcon, PencilIcon } from "@heroicons/vue/24/solid";
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
 import ConfirmModal from "@/BaseComponents/ConfirmModal.vue";
 
 export default {
-  components: { BaseButton, BaseSelect, ChartBarIcon, TrashIcon, ConfirmModal },
+  components: { BaseButton, BaseSelect, ChartBarIcon, TrashIcon, ConfirmModal, PencilIcon },
   data() {
     return {
       sessions: [],

@@ -21,6 +21,8 @@ class CriterionCreate(CriterionBase):
     name: str
     type: CriterionType
 
+class CriterionUpdate(BaseModel):
+    name: str
 
 class CriterionRead(CriterionBase):
     id: int

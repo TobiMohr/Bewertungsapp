@@ -7,6 +7,7 @@ from ..models import Criterion, User, UserCriterion, UserCriterionText, Session 
 from ..schemas.criterias import (
     CriterionType,
     CriterionCreate,
+    CriterionUpdate,
     CriterionRead,
     UserCriterionUpdate,
     UserCriterionRead,
@@ -62,6 +63,23 @@ def create_criterion(payload: CriterionCreate, session: Session = Depends(get_db
     session.commit()
     session.refresh(new_crit)
     return new_crit
+
+@router.get("/{criterion_id}", response_model=CriterionRead)
+def get_criterion(criterion_id: int, db: Session = Depends(get_db)):
+    criterion = db.query(Criterion).filter(Criterion.id == criterion_id).first()
+    if not criterion:
+        raise HTTPException(status_code=404, detail="Criterion not found")
+    return criterion
+
+@router.put("/{criterion_id}", response_model=CriterionRead)
+def update_criterion(criterion_id: int, payload: CriterionUpdate, db: Session = Depends(get_db)):
+    criterion = db.query(Criterion).filter(Criterion.id == criterion_id).first()
+    if not criterion:
+        raise HTTPException(status_code=404, detail="Criterion not found")
+    criterion.name = payload.name
+    db.commit()
+    db.refresh(criterion)
+    return criterion
 
 @router.get("/", response_model=List[CriterionRead])
 def list_criteria(session: Session = Depends(get_db)):
