@@ -53,8 +53,10 @@
             @click="confirmDelete(crit.id)"
             class="p-2 rounded-full"
             variant="delete"
-            :tooltip="crit.has_dependencies ? 'Cannot delete, criterion in use' : 'Delete criterion'"
-            :disabled="crit.has_dependencies"
+            :tooltip="crit.has_dependencies || selectedSessionId
+              ? 'Cannot delete: criterion is in use or part of a session'
+              : 'Delete criterion'"
+            :disabled="crit.has_dependencies || !!selectedSessionId"
           >
             <TrashIcon class="h-5 w-5" />
           </BaseButton>
