@@ -67,8 +67,15 @@
           </p>
 
           <!-- Show message if user has no role -->
-          <div v-if="!userRoleId" class="text-center p-6 bg-gray-100 rounded-lg">
-            <p class="text-gray-500">User has no role yet.</p>
+          <div v-if="!userRoleId" class="text-center p-6 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-blue-800">
+              {{ user?.first_name }} {{ user?.last_name }} has no role for {{ selectedItem.title }} yet. 
+              You can assign roles to users on the 
+              <router-link to="/users" class="font-semibold underline hover:text-blue-900">
+                Users
+              </router-link> 
+              page by selecting a user and opening their detail page.
+            </p>
           </div>
 
           <!-- Criteria grid only if user has a role -->

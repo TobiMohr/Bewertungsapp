@@ -10,6 +10,17 @@
       </router-link>
     </div>
 
+    <!-- Info text -->
+    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
+      Roles are specific to sessions. A user can have different roles for different sessions, so roles need to be set for each session individually. 
+      <br />
+      You can assign roles to users in the 
+      <router-link to="/users" class="font-semibold underline hover:text-blue-900">
+        Users
+      </router-link>
+      section by clicking on a user and opening their detail page.
+    </div>
+
     <!-- Roles list -->
     <ul class="divide-y divide-gray-200">
       <li
