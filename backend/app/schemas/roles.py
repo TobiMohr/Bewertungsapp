@@ -14,8 +14,9 @@ class RoleUpdate(RoleBase):
 
 class RoleRead(RoleBase):
     id: int
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    has_dependencies: bool = False
 
 class RoleAssignRequest(BaseModel):
     role_id: int

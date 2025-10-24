@@ -12,7 +12,8 @@
 
     <!-- Info text -->
     <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
-      Roles are specific to sessions. A user can have different roles for different sessions, so roles need to be set for each session individually. 
+      Roles are specific to sessions. A user can have different roles for different sessions, so roles need to be set for each session individually. <br />
+      After a rule is used in a session, it cannot be deleted anymore.
       <br />
       You can assign roles to users in the 
       <router-link to="/users" class="font-semibold underline hover:text-blue-900">
@@ -53,7 +54,8 @@
             @click="confirmDelete(role.id)"
             class="p-2 rounded-full"
             variant="delete"
-            tooltip="Delete role"
+            :tooltip="role.has_dependencies ? 'Cannot delete role: it is used in a session already.' : 'Delete role'"
+            :disabled="role.has_dependencies"
           >
             <TrashIcon class="h-5 w-5" />
           </BaseButton>
