@@ -1,0 +1,41 @@
+import logging
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from . import db, models
+from .routers import files, users, teams, auth, criterias, sessions, roles, usersessions
+
+# --- configure logging once, at startup ---
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Create FastAPI app first
+app = FastAPI()
+
+# CORSMiddleware must come BEFORE routers
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000", 
+        "http://localhost:8080", 
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# Create tables at startup
+logger.info("Creating database tables if they don't exist…")
+models.Base.metadata.create_all(bind=db.engine)
+
+# Include user router
+app.include_router(users.router)
+app.include_router(teams.router)
+app.include_router(auth.router)
+app.include_router(criterias.router)
+app.include_router(sessions.router)
+app.include_router(files.router)
+app.include_router(roles.router)
+app.include_router(usersessions.router)

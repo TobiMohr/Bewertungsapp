@@ -1,1 +1,24 @@
+# Environment files
+backend/**/.env
+backend/**/.env.local
+frontend/.env.local
+frontend/.env
 .env
+.env.local
+
+
+
+# Python cache folders
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+
+# Python compiled files
+*.pyc
+*.pyo
+*.pyd
+
+# ignore services for now
+criteriaService/
+sessionService/
+userService/
