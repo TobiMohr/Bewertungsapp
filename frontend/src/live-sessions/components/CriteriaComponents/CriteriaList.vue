@@ -16,7 +16,6 @@
       <BaseSelect
         v-model="selectedSessionId"
         :options="sessionOptions"
-        placeholder="-- Select Session --"
       />
     </div>
 
@@ -39,7 +38,7 @@
             :disabled="!selectedSessionId"
             @click="$router.push({ path: `/criterias/${crit.id}/users`, query: { session: selectedSessionId } })"
             class="p-2 rounded-full"
-            tooltip="Edit for Users"
+            :tooltip="selectedSessionId ? 'Edit for Users' : 'Select a session to edit for users'"
           >
             <ChartBarIcon class="h-5 w-5" />
           </BaseButton>
@@ -79,7 +78,10 @@ export default {
           ...(s.children ? flattenSessions(s.children, depth + 1) : [])
         ]);
       };
-      return flattenSessions(this.sessions);
+      return [
+        { value: "", label: "All Sessions" },
+        ...flattenSessions(this.sessions)
+      ];
     }
   },
   watch: {

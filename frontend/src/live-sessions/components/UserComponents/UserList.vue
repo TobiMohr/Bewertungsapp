@@ -17,7 +17,6 @@
         <BaseSelect
           v-model="selectedSessionId"
           :options="sessionOptions"
-          placeholder="-- Select Session --"
         />
       </div>
 
@@ -27,7 +26,6 @@
         <BaseSelect
           v-model="selectedTeamId"
           :options="teamOptions"
-          placeholder="-- All Teams --"
         />
       </div>
     </div>
@@ -122,7 +120,7 @@ export default {
       sessions: [],
       teams: [],
       selectedSessionId: null,
-      selectedTeamId: null, // team filter
+      selectedTeamId: "", // team filter
       showDeleteModal: false,
       userToDelete: null,
       userRoles: {},
@@ -140,17 +138,16 @@ export default {
       return flattenSessions(this.sessions);
     },
     teamOptions() {
-      return this.teams.map(team => ({ value: team.id, label: team.name }));
+      return [
+        { value: "", label: "All Teams" },
+        ...this.teams.map(team => ({ value: team.id.toString(), label: team.name })),
+      ];
     },
     filteredUsers() {
-      // Keep session filter logic intact
-      console.log("Filtering users by team:", this.selectedTeamId);
-      console.log(this.users);
       let filtered = this.users;
       if (this.selectedTeamId) {
         filtered = filtered.filter(user => user.team && user.team.id === Number(this.selectedTeamId));
       }
-      console.log("Filtered users:", filtered);
       return filtered;
     },
   },
@@ -230,6 +227,7 @@ export default {
       this.selectedSessionId = this.sessions[0].id.toString();
     }
     await this.fetchUsers();
+    this.selectedTeamId = "";
   },
 };
 </script>
