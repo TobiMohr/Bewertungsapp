@@ -17,6 +17,7 @@
         v-model="criterion.type"
         :options="typeOptions"
         placeholder="Select Type"
+        :showPlaceholder="true"
         required
       />
 

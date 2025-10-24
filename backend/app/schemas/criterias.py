@@ -24,6 +24,7 @@ class CriterionCreate(CriterionBase):
 
 class CriterionRead(CriterionBase):
     id: int
+    has_dependencies: bool = False
 
     class Config:
         orm_mode = True
