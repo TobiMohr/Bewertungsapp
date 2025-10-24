@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from typing import List
 
 from .. import db
@@ -214,6 +215,7 @@ def copy_session(session_id: int, payload: dict, db: Session = Depends(get_db)):
         new_assoc = SessionCriterion(
             session_id=copied_session.id,
             criterion_id=assoc.criterion_id,
+            role_id=assoc.role_id,
             weight=assoc.weight
         )
         db.add(new_assoc)
@@ -239,6 +241,7 @@ def copy_session(session_id: int, payload: dict, db: Session = Depends(get_db)):
                 new_assoc = SessionCriterion(
                     session_id=copied_child.id,
                     criterion_id=assoc.criterion_id,
+                    role_id=assoc.role_id,
                     weight=assoc.weight
                 )
                 db.add(new_assoc)
@@ -258,6 +261,37 @@ def copy_session(session_id: int, payload: dict, db: Session = Depends(get_db)):
     ).filter(SessionModel.id == copied_session.id).first()
 
     return session_to_dict(copied_session)
+
+@router.get("/{session_id}/criteria/averages")
+def get_criterion_averages(session_id: int, db: Session = Depends(get_db)):
+    """
+    Returns average count_value for each countable criterion in a session.
+    """
+    results = (
+        db.query(
+            UserCriterion.criterion_id,
+            func.avg(UserCriterion.count_value).label("average_value")
+        )
+        .join(Criterion)
+        .filter(
+            UserCriterion.session_id == session_id,
+            Criterion.type == "countable"
+        )
+        .group_by(UserCriterion.criterion_id)
+        .all()
+    )
+
+    # Get criterion names too
+    averages = []
+    for criterion_id, avg_value in results:
+        criterion = db.query(Criterion).filter_by(id=criterion_id).first()
+        averages.append({
+            "criterion_id": criterion_id,
+            "criterion_name": criterion.name,
+            "average_value": round(avg_value, 2) if avg_value is not None else 0
+        })
+
+    return averages
 
 
 
