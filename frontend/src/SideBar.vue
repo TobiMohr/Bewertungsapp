@@ -284,6 +284,7 @@
     </nav>
 
     <!-- Logout Button -->
+     <!--
     <button
       @click="logout"
       class="mt-auto flex items-center px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
@@ -291,12 +292,12 @@
       <ArrowRightOnRectangleIcon class="w-5 h-5 flex-shrink-0" />
       <span v-if="sidebarOpen" class="ml-2">Logout</span>
     </button>
+    -->
   </aside>
 </template>
 
 <script setup>
 import { ref } from "vue";
-import { useRouter } from "vue-router";
 
 // Heroicons
 import {
@@ -307,13 +308,11 @@ import {
   CalendarDaysIcon,
   ListBulletIcon,
   PlusIcon,
-  ArrowRightOnRectangleIcon,
   ArrowUpTrayIcon,
   ShieldCheckIcon,
   UserGroupIcon,
 } from "@heroicons/vue/24/outline";
 
-const router = useRouter();
 
 const sidebarOpen = ref(false);
 const usersOpen = ref(false);
@@ -331,8 +330,9 @@ const toggleTeams = () => (teamsOpen.value = !teamsOpen.value);
 const toggleCriterias = () => (criteriasOpen.value = !criteriasOpen.value);
 const toggleSessions = () => (sessionsOpen.value = !sessionsOpen.value);
 
-const logout = () => {
-  localStorage.removeItem("token");
-  router.push("/login");
-};
+//const logout = () => {
+//  localStorage.removeItem("token");
+//  router.push("/login");
+//};
+
 </script>
