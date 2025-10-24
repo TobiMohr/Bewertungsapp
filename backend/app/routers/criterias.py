@@ -49,7 +49,7 @@ def get_or_create_usercriterion(session: Session, user_id: int, criterion_id: in
     return uc
 
 # ----- Criterion -----
-@router.post("/", response_model=CriterionRead)
+@router.post("", response_model=CriterionRead)
 def create_criterion(payload: CriterionCreate, session: Session = Depends(get_db)):
     existing = session.query(Criterion).filter(Criterion.name == payload.name).first()
     if existing:
@@ -81,7 +81,7 @@ def update_criterion(criterion_id: int, payload: CriterionUpdate, db: Session = 
     db.refresh(criterion)
     return criterion
 
-@router.get("/", response_model=List[CriterionRead])
+@router.get("", response_model=List[CriterionRead])
 def list_criteria(session: Session = Depends(get_db)):
     criteria = session.query(Criterion).all()
     result = []
