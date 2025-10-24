@@ -18,7 +18,7 @@
           v-model="user.team_id"
           :options="teamOptions"
           placeholder="Select a team"
-          required
+          :showPlaceholder="true"
         />
       </div>
       <label class="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
