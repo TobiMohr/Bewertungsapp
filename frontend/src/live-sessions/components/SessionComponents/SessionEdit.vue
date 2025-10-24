@@ -149,7 +149,8 @@
           <template #title>Copy Session</template>
           <template #content>
             <p class="text-sm text-gray-500 mb-4">
-              Enter a name for the copied session.
+              Enter a name for the copied session. <br />
+              The subsessions will also be copied.
             </p>
             <BaseInput
               v-model="copyTitleInput"

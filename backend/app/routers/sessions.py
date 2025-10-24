@@ -215,6 +215,7 @@ def copy_session(session_id: int, payload: dict, db: Session = Depends(get_db)):
         new_assoc = SessionCriterion(
             session_id=copied_session.id,
             criterion_id=assoc.criterion_id,
+            role_id=assoc.role_id,
             weight=assoc.weight
         )
         db.add(new_assoc)
@@ -240,6 +241,7 @@ def copy_session(session_id: int, payload: dict, db: Session = Depends(get_db)):
                 new_assoc = SessionCriterion(
                     session_id=copied_child.id,
                     criterion_id=assoc.criterion_id,
+                    role_id=assoc.role_id,
                     weight=assoc.weight
                 )
                 db.add(new_assoc)

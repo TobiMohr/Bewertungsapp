@@ -11,7 +11,7 @@
     </div>
 
     <!-- Info text -->
-    <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
+    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
       Session deletion is disabled in this version.
     </div>
 
