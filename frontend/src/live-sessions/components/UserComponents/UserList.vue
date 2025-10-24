@@ -45,6 +45,14 @@
             @click="$router.push({ path: `/users/${user.id}`, query: { session: selectedSessionId } })"
           >
             {{ user.first_name }} {{ user.last_name }} - {{ user.email }}
+            <span
+              class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium"
+              :class="userRoles[user.id]?.name
+                ? 'bg-indigo-100 text-indigo-800'
+                : 'bg-gray-100 text-gray-500'"
+            >
+              {{ userRoles[user.id]?.name || 'No Role yet' }}
+            </span>
           </p>
         </div>
 
@@ -98,6 +106,7 @@
 
 <script>
 import { getUsers, deleteUser } from "@/live-sessions/api/users";
+import { getUserRoleForSession } from "@/live-sessions/api/roles";
 import { getSessions } from "@/live-sessions/api/sessions";
 import { getTeams } from "@/live-sessions/api/teams";
 import { PencilIcon, TrashIcon, ChartBarIcon } from "@heroicons/vue/24/solid";
@@ -116,6 +125,7 @@ export default {
       selectedTeamId: null, // team filter
       showDeleteModal: false,
       userToDelete: null,
+      userRoles: {},
     };
   },
   computed: {
@@ -144,6 +154,13 @@ export default {
       return filtered;
     },
   },
+  watch: {
+    async selectedSessionId(newSessionId) {
+      if (newSessionId) {
+        await this.fetchRolesForUsers(newSessionId);
+      }
+    },
+  },
   methods: {
     async fetchSessions() {
       try {
@@ -168,9 +185,30 @@ export default {
           const last = a.last_name.localeCompare(b.last_name, "en", { sensitivity: "base" });
           return last !== 0 ? last : a.first_name.localeCompare(b.first_name, "en", { sensitivity: "base" });
         });
+        if (this.selectedSessionId) {
+          await this.fetchRolesForUsers(this.selectedSessionId);
+        }
       } catch (err) {
         console.error("Failed to load users:", err);
       }
+    },
+    async fetchRolesForUsers(sessionId) {
+      if (!sessionId || !this.users.length) return;
+      const roles = {};
+      await Promise.all(
+        this.users.map(async (u) => {
+          try {
+            const res = await getUserRoleForSession(u.id, sessionId);
+            roles[u.id] = {
+              id: res.data.role_id || null,
+              name: res.data.role_name || null,
+            };
+          } catch (err) {
+            roles[u.id] = { id: null, name: null };
+          }
+        })
+      );
+      this.userRoles = roles;
     },
     confirmDelete(userId) {
       this.userToDelete = userId;
@@ -187,6 +225,11 @@ export default {
   },
   async mounted() {
     await Promise.all([this.fetchSessions(), this.fetchTeams(), this.fetchUsers()]);
+
+    if (this.sessions.length > 0) {
+      this.selectedSessionId = this.sessions[0].id.toString();
+    }
+    await this.fetchUsers();
   },
 };
 </script>
