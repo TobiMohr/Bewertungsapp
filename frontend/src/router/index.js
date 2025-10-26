@@ -24,6 +24,13 @@ import SessionList from "@/live-sessions/components/SessionComponents/SessionLis
 import SessionForm from "@/live-sessions/components/SessionComponents/SessionForm.vue";
 import SessionEdit from "@/live-sessions/components/SessionComponents/SessionEdit.vue";
 
+// Async Sessions (asynchrone Analysen)
+import AsyncSessionList     from "../async-sessions/pages/AsyncSessionList.vue";
+import AsyncSessionCreate   from "../async-sessions/pages/AsyncSessionCreate.vue";
+import AsyncSessionDetail   from "../async-sessions/pages/AsyncSessionDetail.vue";
+import AsyncSessionFeedback from "../async-sessions/pages/AsyncSessionFeedback.vue";
+
+
 // Roles
 import RoleList from "@/live-sessions/components/RoleComponents/RoleList.vue";
 import RoleForm from "@/live-sessions/components/RoleComponents/RoleForm.vue";
@@ -104,6 +111,30 @@ const routes = [
     path: "/sessions/edit/:id",
     component: SessionEdit,
     props: true,
+  },
+  // Async Sessions
+  { path: "/async", redirect: "/async/sessions", meta: { requiresAuth: true } },
+  {
+    path: "/async/sessions",
+    component: AsyncSessionList,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/async/create",
+    component: AsyncSessionCreate,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/async/sessions/:id",
+    component: AsyncSessionDetail,
+    props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/async/sessions/:id/feedback",
+    component: AsyncSessionFeedback,
+    props: true,
+    meta: { requiresAuth: true },
   },
   // Roles
   {

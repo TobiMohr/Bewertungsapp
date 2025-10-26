@@ -262,6 +262,57 @@
           </ul>
         </li>
 
+        <!-- Async Sessions Menu -->
+        <li>
+          <button
+              @click="toggleAsyncSessions"
+              class="w-full flex items-center px-4 py-2 rounded hover:bg-gray-200"
+          >
+            <ClockIcon class="w-5 h-5 flex-shrink-0" />
+            <span
+                :class="[
+        'ml-2 whitespace-nowrap transition-opacity duration-200',
+        sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'
+      ]"
+            >
+      Async Sessions
+    </span>
+            <ChevronRightIcon
+                v-if="!asyncSessionsOpen && sidebarOpen"
+                class="ml-auto w-4 h-4 transition-transform"
+            />
+            <ChevronDownIcon
+                v-if="asyncSessionsOpen && sidebarOpen"
+                class="ml-auto w-4 h-4 transition-transform"
+            />
+          </button>
+
+          <!-- Submenu -->
+          <ul v-show="asyncSessionsOpen && sidebarOpen" class="mt-2 ml-8 space-y-1">
+            <li>
+              <router-link
+                  to="/async/sessions"
+                  class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
+                  active-class="bg-gray-300 font-semibold"
+              >
+                <ListBulletIcon class="w-5 h-5 flex-shrink-0" />
+                <span class="ml-2">List</span>
+              </router-link>
+            </li>
+            <li>
+              <router-link
+                  to="/async/create"
+                  class="flex items-center px-4 py-2 rounded hover:bg-gray-200"
+                  active-class="bg-gray-300 font-semibold"
+              >
+                <PlusIcon class="w-5 h-5 flex-shrink-0" />
+                <span class="ml-2">Create</span>
+              </router-link>
+            </li>
+          </ul>
+        </li>
+
+
         <!-- Files menu -->
         <li>
           <router-link
@@ -311,6 +362,7 @@ import {
   ArrowUpTrayIcon,
   ShieldCheckIcon,
   UserGroupIcon,
+  ClockIcon,
 } from "@heroicons/vue/24/outline";
 
 const router = useRouter();
@@ -321,6 +373,7 @@ const teamsOpen = ref(false);
 const criteriasOpen = ref(false);
 const sessionsOpen = ref(false);
 const rolesOpen = ref(false);
+const asyncSessionsOpen = ref(false); // NEW
 
 const openSidebar = () => (sidebarOpen.value = true);
 const closeSidebar = () => (sidebarOpen.value = false);
@@ -330,6 +383,7 @@ const toggleRoles = () => (rolesOpen.value = !rolesOpen.value);
 const toggleTeams = () => (teamsOpen.value = !teamsOpen.value);
 const toggleCriterias = () => (criteriasOpen.value = !criteriasOpen.value);
 const toggleSessions = () => (sessionsOpen.value = !sessionsOpen.value);
+const toggleAsyncSessions = () => (asyncSessionsOpen.value = !asyncSessionsOpen.value); // NEW
 
 const logout = () => {
   localStorage.removeItem("token");
