@@ -114,6 +114,32 @@
       No criteria assigned to this user.
     </p>
 
+    <h3 class="text-xl font-semibold text-gray-700 mt-6 mb-4">Comments</h3>
+
+    <div v-if="currentRole" class="space-y-3">
+      <!-- Add new comment -->
+      <div class="flex items-start space-x-3 mb-3">
+        <textarea
+          v-model="newCommentText"
+          class="flex-1 border rounded-md p-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          rows="3"
+          placeholder="Write a comment..."
+        ></textarea>
+        <BaseButton @click="addComment">Add</BaseButton>
+      </div>
+
+      <!-- Comments list -->
+      <div v-if="comments.length" class="space-y-2">
+        <BaseCommentComponent
+          v-for="c in comments"
+          :key="c.id"
+          :comment="c"
+        />
+      </div>
+
+      <p v-else class="text-gray-500 text-center">No comments yet.</p>
+    </div>
+
     <!-- Text Modal -->
     <transition name="fade">
       <div
@@ -191,6 +217,7 @@
 <script>
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
+import BaseCommentComponent from "@/BaseComponents/BaseCommentComponent.vue";
 import { getUsers, getUser } from "@/live-sessions/api/users";
 import { getSessions, getSession } from "@/live-sessions/api/sessions";
 import {
@@ -205,10 +232,11 @@ import {
   assignRoleToUserInSession,
   getUserRoleForSession
 } from "@/live-sessions/api/roles";
+import { getCommentsForUserInSession, addCommentForUserInSession } from "@/live-sessions/api/comments";
 import { DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
-  components: { BaseButton, BaseSelect, DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
+  components: { BaseCommentComponent, BaseButton, BaseSelect, DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
   data() {
     return {
       sessions: [],
@@ -227,6 +255,8 @@ export default {
       currentRole: null,
       showRoleModal: false,
       selectedRoleInModal: "",
+      comments: [],
+      newCommentText: "",
     };
   },
   computed: {
@@ -244,13 +274,19 @@ export default {
     },
   },
   watch: {
-    async selectedSessionId(newSessionId) {
-      await this.fetchData(this.selectedUserId, newSessionId);
-      await this.fetchUserRole(this.selectedUserId, newSessionId);
+    selectedUserId(newVal) {
+      if (!newVal || !this.selectedSessionId) return;
+      this.$router.replace({ params: { id: newVal }, query: { session: this.selectedSessionId } });
+      this.fetchData(newVal, this.selectedSessionId);
+      this.fetchUserRole(newVal, this.selectedSessionId);
+      this.fetchComments();
     },
-    async selectedUserId(newUserId) {
-      await this.fetchData(newUserId, this.selectedSessionId);
-      await this.fetchUserRole(newUserId, this.selectedSessionId);
+    selectedSessionId(newVal) {
+      if (!newVal || !this.selectedUserId) return;
+      this.$router.replace({ params: { id: this.selectedUserId }, query: { session: newVal } });
+      this.fetchData(this.selectedUserId, newVal);
+      this.fetchUserRole(this.selectedUserId, newVal);
+      this.fetchComments();
     },
   },
   methods: {
@@ -271,6 +307,11 @@ export default {
       const res = await getRoles();
       this.roles = res.data;
     },
+    async fetchComments() {
+      if (!this.selectedUserId || !this.selectedSessionId) return;
+      const res = await getCommentsForUserInSession(this.selectedUserId, this.selectedSessionId);
+      this.comments = res.data;
+    },
     async fetchUserRole(userId, sessionId) {
       if (!userId || !sessionId) return;
       try {
@@ -288,6 +329,16 @@ export default {
       await assignRoleToUserInSession(this.selectedUserId, this.selectedSessionId, this.selectedRoleInModal);
       await this.fetchUserRole(this.selectedUserId, this.selectedSessionId);
       this.showRoleModal = false;
+    },
+    async addComment() {
+      if (!this.newCommentText.trim()) return;
+      await addCommentForUserInSession(
+        this.selectedUserId,
+        this.selectedSessionId,
+        this.newCommentText
+      );
+      this.newCommentText = "";
+      await this.fetchComments();
     },
     filterHistory() {
       if (!this.activeCriterion || !this.activeCriterion.last_texts) {
@@ -360,6 +411,7 @@ export default {
     await Promise.all([this.fetchSessions(), this.fetchUsers(), this.fetchRoles()]);
     await this.fetchData();
     await this.fetchUserRole(this.selectedUserId, this.selectedSessionId);
+    await this.fetchComments();
   },
 };
 </script>
