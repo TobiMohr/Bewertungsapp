@@ -10,6 +10,7 @@
       </router-link>
     </div>
 
+    <!-- Filters -->
     <div class="mb-6 flex flex-col md:flex-row md:items-end md:space-x-6">
       <!-- Session selector -->
       <div class="w-full md:w-1/4">
@@ -43,6 +44,8 @@
             @click="$router.push({ path: `/users/${user.id}`, query: { session: selectedSessionId } })"
           >
             {{ user.first_name }} {{ user.last_name }} - {{ user.email }}
+
+            <!-- Role badge -->
             <span
               class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium"
               :class="userRoles[user.id]?.name
@@ -50,6 +53,16 @@
                 : 'bg-gray-100 text-gray-500'"
             >
               {{ userRoles[user.id]?.name || 'No Role yet' }}
+            </span>
+
+            <!-- Team badge -->
+            <span
+              class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium"
+              :class="user.team?.name
+                ? 'bg-green-100 text-green-800'
+                : 'bg-gray-100 text-gray-500'"
+            >
+              {{ user.team?.name || 'No Team yet'}}
             </span>
           </p>
         </div>
@@ -128,7 +141,6 @@ export default {
   },
   computed: {
     sessionOptions() {
-      // Flatten sessions and subsessions for the select with depth prefix
       const flattenSessions = (sessions, depth = 0) => {
         return sessions.flatMap(s => [
           { value: s.id.toString(), label: `${"— ".repeat(depth)}${s.title}` },
@@ -140,15 +152,30 @@ export default {
     teamOptions() {
       return [
         { value: "", label: "All Teams" },
+        { value: "no-team", label: "No Team" },
         ...this.teams.map(team => ({ value: team.id.toString(), label: team.name })),
+        
       ];
     },
     filteredUsers() {
       let filtered = this.users;
+
       if (this.selectedTeamId) {
-        filtered = filtered.filter(user => user.team && user.team.id === Number(this.selectedTeamId));
+        if (this.selectedTeamId === "no-team") {
+          filtered = filtered.filter(user => !user.team);
+        } else {
+          filtered = filtered.filter(user => user.team && user.team.id === Number(this.selectedTeamId));
+        }
       }
-      return filtered;
+
+      // Sort by team name, then last name
+      return filtered.sort((a, b) => {
+        const teamA = a.team?.name || "";
+        const teamB = b.team?.name || "";
+        const cmp = teamA.localeCompare(teamB, "en", { sensitivity: "base" });
+        if (cmp !== 0) return cmp;
+        return a.last_name.localeCompare(b.last_name, "en", { sensitivity: "base" });
+      });
     },
   },
   watch: {
@@ -216,7 +243,7 @@ export default {
         await deleteUser(this.userToDelete);
         this.showDeleteModal = false;
         this.userToDelete = null;
-        this.fetchUsers();
+        await this.fetchUsers();
       }
     },
   },
