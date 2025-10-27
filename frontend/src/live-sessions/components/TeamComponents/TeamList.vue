@@ -10,19 +10,24 @@
       </router-link>
     </div>
 
+    <!-- Session selector -->
+    <div class="mb-6 w-1/4">
+      <label class="block mb-2 font-semibold">Select Session</label>
+      <BaseSelect v-model="selectedSessionId" :options="sessionOptions" />
+    </div>
+
     <!-- Teams list -->
     <ul class="divide-y divide-gray-200">
       <li v-for="team in teams" :key="team.id" class="py-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 cursor-pointer" @click="toggleTeam(team.id)">
-            <!-- Show ChevronDown if expanded, ChevronRight if collapsed -->
             <ChevronDownIcon v-if="selectedTeamId === team.id" class="h-5 w-5 text-gray-500" />
             <ChevronRightIcon v-else class="h-5 w-5 text-gray-500" />
 
             <span class="text-lg font-medium text-gray-900 hover:underline">
                 {{ team.name }}
             </span>
-            </div>
+          </div>
 
           <!-- Actions -->
           <div class="flex items-center space-x-2">
@@ -48,31 +53,40 @@
 
         <!-- Users submenu -->
         <ul
-          v-if="selectedTeamId === team.id"
+         v-if="selectedTeamId === team.id"
           class="mt-2 ml-6 border-l border-gray-300 pl-4 space-y-1"
-        >
+          >
           <li
-            v-for="user in usersByTeam[team.id] || []"
+           v-for="user in usersByTeam[team.id] || []"
             :key="user.id"
             class="text-gray-700 hover:text-gray-900 cursor-pointer"
-          >
-            {{ user.first_name }} {{ user.last_name }}
+            >
+              {{ user.first_name }} {{ user.last_name }}
+
+            <!-- Role badge based on selected session -->
+            <span
+              class="inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium"
+              :class="userRoles[user.id]?.name
+                ? 'bg-indigo-100 text-indigo-800'
+                : 'bg-gray-100 text-gray-500'"
+            >
+              {{ userRoles[user.id]?.name || 'No Role yet' }}
+            </span>
           </li>
           <li
-            v-if="!(usersByTeam[team.id] && usersByTeam[team.id].length)"
+           v-if="!(usersByTeam[team.id] && usersByTeam[team.id].length)"
             class="text-gray-500 italic"
-          >
+            >
             No users in this team.
           </li>
         </ul>
       </li>
     </ul>
 
-    <!-- Empty state -->
     <p
-      v-if="teams.length === 0"
+     v-if="teams.length === 0"
       class="text-gray-500 mt-4 text-center"
-    >
+      >
       No teams found.
     </p>
 
@@ -90,63 +104,97 @@
 <script>
 import { getTeams, deleteTeam } from "@/live-sessions/api/teams";
 import { getUsers } from "@/live-sessions/api/users";
+import { getSessions } from "@/live-sessions/api/sessions";
+import { getUserRoleForSession } from "@/live-sessions/api/roles";
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import ConfirmModal from "@/BaseComponents/ConfirmModal.vue";
-
-// Heroicons
-import {
-  PencilIcon,
-  TrashIcon,
-  ChevronRightIcon,
-  ChevronDownIcon,
-} from "@heroicons/vue/24/solid";
+import BaseSelect from "@/BaseComponents/BaseSelect.vue";
+import { PencilIcon, TrashIcon, ChevronRightIcon, ChevronDownIcon } from "@heroicons/vue/24/solid";
 
 export default {
-  components: {
-    PencilIcon,
-    TrashIcon,
-    ChevronRightIcon,
-    ChevronDownIcon,
-    BaseButton,
-    ConfirmModal,
-  },
+  components: { PencilIcon, TrashIcon, ChevronRightIcon, ChevronDownIcon, BaseButton, ConfirmModal, BaseSelect },
   data() {
     return {
       teams: [],
+      users: [],
       usersByTeam: {},
+      sessions: [],
+      selectedSessionId: null,
       selectedTeamId: null,
+      userRoles: {},
       showDeleteModal: false,
       teamToDelete: null,
     };
+  },
+  computed: {
+    sessionOptions() {
+      const flattenSessions = (sessions, depth = 0) =>
+        sessions.flatMap(s => [
+          { value: s.id.toString(), label: `${"— ".repeat(depth)}${s.title}` },
+          ...(s.children ? flattenSessions(s.children, depth + 1) : [])
+        ]);
+      return flattenSessions(this.sessions);
+    },
+  },
+  watch: {
+    async selectedSessionId(sessionId) {
+      if (!sessionId) return;
+      await this.fetchRolesForAllUsers(sessionId);
+    },
   },
   methods: {
     async fetchTeams() {
       try {
         const res = await getTeams();
-        this.teams = res.data.sort((a, b) =>
-          a.name.localeCompare(b.name, "en", { sensitivity: "base" })
-        );
+        this.teams = res.data.sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
       } catch (err) {
         console.error("Failed to load teams:", err);
       }
     },
-    async fetchUsersForTeam(teamId) {
+    async fetchUsers() {
       try {
-        const res = await getUsers(teamId);
-        this.usersByTeam[teamId] = res.data;
+        const res = await getUsers();
+        this.users = res.data.sort((a, b) => {
+          const last = a.last_name.localeCompare(b.last_name, "en", { sensitivity: "base" });
+          return last !== 0 ? last : a.first_name.localeCompare(b.first_name, "en", { sensitivity: "base" });
+        });
+
+        // build usersByTeam map
+        this.usersByTeam = this.teams.reduce((acc, team) => {
+          acc[team.id] = this.users.filter(u => u.team?.id === team.id);
+          return acc;
+        }, {});
+
+        if (this.selectedSessionId) await this.fetchRolesForAllUsers(this.selectedSessionId);
       } catch (err) {
-        console.error("Failed to load users for team:", err);
+        console.error("Failed to load users:", err);
       }
     },
-    toggleTeam(teamId) {
-      if (this.selectedTeamId === teamId) {
-        this.selectedTeamId = null;
-      } else {
-        this.selectedTeamId = teamId;
-        if (!this.usersByTeam[teamId]) {
-          this.fetchUsersForTeam(teamId);
-        }
+    async fetchSessions() {
+      try {
+        const res = await getSessions();
+        this.sessions = res.data;
+        if (this.sessions.length > 0) this.selectedSessionId = this.sessions[0].id.toString();
+      } catch (err) {
+        console.error("Failed to load sessions:", err);
       }
+    },
+    async fetchRolesForAllUsers(sessionId) {
+      if (!sessionId || !this.users.length) return;
+
+      const roles = {};
+      await Promise.all(this.users.map(async (u) => {
+        try {
+          const res = await getUserRoleForSession(u.id, sessionId);
+          roles[u.id] = { id: res.data.role_id, name: res.data.role_name };
+        } catch {
+          roles[u.id] = { id: null, name: null };
+        }
+      }));
+      this.userRoles = roles;
+    },
+    toggleTeam(teamId) {
+      this.selectedTeamId = this.selectedTeamId === teamId ? null : teamId;
     },
     confirmDelete(teamId) {
       this.teamToDelete = teamId;
@@ -157,12 +205,15 @@ export default {
         await deleteTeam(this.teamToDelete);
         this.showDeleteModal = false;
         this.teamToDelete = null;
-        this.fetchTeams();
+        await this.fetchTeams();
+        await this.fetchUsers();
       }
     },
   },
   async mounted() {
-    await this.fetchTeams();
+    await Promise.all([this.fetchTeams(), this.fetchSessions()]);
+    await this.fetchUsers();
   },
 };
 </script>
+

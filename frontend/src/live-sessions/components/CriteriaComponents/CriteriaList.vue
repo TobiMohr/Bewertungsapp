@@ -16,8 +16,13 @@
       <BaseSelect
         v-model="selectedSessionId"
         :options="sessionOptions"
-        placeholder="-- Select Session --"
       />
+    </div>
+
+    <!-- Info text -->
+    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
+      Criteria can only be deleted if they are not used in any session. <br />
+      To assign criteria to users, select a session from the dropdown above and click the "Edit for Users" button next to a criterion.
     </div>
 
     <!-- Criteria list -->
@@ -34,41 +39,75 @@
           </p>
         </div>
 
-        <div>
+        <div class="flex items-center space-x-2">
+          <!-- Edit criterion button -->
+          <BaseButton
+            @click="$router.push(`/criterias/edit/${crit.id}`)"
+            class="p-2 rounded-full"
+            variant="edit"
+            tooltip="Edit criterion"
+          >
+            <PencilIcon class="h-5 w-5" />
+          </BaseButton>
+
           <BaseButton
             :disabled="!selectedSessionId"
             @click="$router.push({ path: `/criterias/${crit.id}/users`, query: { session: selectedSessionId } })"
             class="p-2 rounded-full"
-            tooltip="Edit for Users"
+            :tooltip="selectedSessionId ? 'Edit for Users' : 'Select a session to edit for users'"
           >
             <ChartBarIcon class="h-5 w-5" />
+          </BaseButton>
+
+          <BaseButton
+            @click="confirmDelete(crit.id)"
+            class="p-2 rounded-full"
+            variant="delete"
+            :tooltip="crit.has_dependencies || selectedSessionId
+              ? 'Cannot delete: criterion is in use or part of a session'
+              : 'Delete criterion'"
+            :disabled="crit.has_dependencies || !!selectedSessionId"
+          >
+            <TrashIcon class="h-5 w-5" />
           </BaseButton>
         </div>
       </li>
     </ul>
 
-    <!-- Empty state if no criteria for this session -->
+    <!-- Empty state -->
     <p v-if="selectedSessionId && criterias.length === 0" class="text-gray-500 mt-4 text-center">
       This session has no criteria assigned.
     </p>
+
+    <!-- Confirm Modal -->
+    <ConfirmModal
+      :isOpen="showDeleteModal"
+      title="Delete Criterion"
+      message="Are you sure you want to delete this criterion?"
+      @confirm="deleteConfirmed"
+      @cancel="showDeleteModal = false"
+    />
   </div>
 </template>
 
 <script>
 import { getSessions } from "@/live-sessions/api/sessions";
-import { getCriterias } from "@/live-sessions/api/criterias";
-import { ChartBarIcon } from "@heroicons/vue/24/solid";
+import { getCriterias, deleteCriterion } from "@/live-sessions/api/criterias";
+import { ChartBarIcon, TrashIcon, PencilIcon } from "@heroicons/vue/24/solid";
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
+import ConfirmModal from "@/BaseComponents/ConfirmModal.vue";
 
 export default {
-  components: { BaseButton, BaseSelect, ChartBarIcon },
+  components: { BaseButton, BaseSelect, ChartBarIcon, TrashIcon, ConfirmModal, PencilIcon },
   data() {
     return {
       sessions: [],
-      criterias: [],       // criteria for selected session
-      allCriterias: [],    // all criteria
+      criterias: [],
+      allCriterias: [],
       selectedSessionId: null,
+      showDeleteModal: false,
+      criterionToDelete: null,
     };
   },
   computed: {
@@ -79,7 +118,10 @@ export default {
           ...(s.children ? flattenSessions(s.children, depth + 1) : [])
         ]);
       };
-      return flattenSessions(this.sessions);
+      return [
+        { value: "", label: "All Sessions" },
+        ...flattenSessions(this.sessions)
+      ];
     }
   },
   watch: {
@@ -96,7 +138,6 @@ export default {
         console.error("Failed to load sessions:", err);
       }
     },
-
     async fetchAllCriterias() {
       try {
         const res = await getCriterias();
@@ -107,36 +148,44 @@ export default {
         console.error("Failed to load all criterias:", err);
       }
     },
-
     async fetchCriteriasBySession() {
       if (!this.selectedSessionId) {
-        // No session selected → show all criteria
         this.criterias = this.allCriterias;
         return;
       }
-
       const sessionIdNum = Number(this.selectedSessionId);
       const flattenAllSessions = (sessions) =>
         sessions.flatMap(s => [s, ...(s.children ? flattenAllSessions(s.children) : [])]);
-
       const allSessions = flattenAllSessions(this.sessions);
       const session = allSessions.find(s => s.id === sessionIdNum);
-
-      console.log("Selected sessions criteria:", session.criteria);
-
       const uniqueCriteria = Array.from(
         new Map(session.criteria.map(c => [c.criterion.id, c.criterion])).values()
       );
-
       this.criterias = uniqueCriteria.sort((a, b) =>
         a.name.localeCompare(b.name, "en", { sensitivity: "base" })
       );
+    },
+    confirmDelete(id) {
+      this.criterionToDelete = id;
+      this.showDeleteModal = true;
+    },
+    async deleteConfirmed() {
+      if (!this.criterionToDelete) return;
+      try {
+        await deleteCriterion(this.criterionToDelete);
+        this.showDeleteModal = false;
+        this.criterionToDelete = null;
+        // refresh lists like roles page
+        await this.fetchAllCriterias();
+        if (this.selectedSessionId) await this.fetchCriteriasBySession();
+      } catch (err) {
+        console.error("Failed to delete criterion:", err);
+      }
     }
   },
   async mounted() {
     await this.fetchSessions();
     await this.fetchAllCriterias();
-    // initially show all criteria
     this.criterias = this.allCriterias;
   }
 };

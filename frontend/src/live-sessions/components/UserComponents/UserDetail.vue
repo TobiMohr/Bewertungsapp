@@ -114,6 +114,44 @@
       No criteria assigned to this user.
     </p>
 
+    <h3 class="text-xl font-semibold text-gray-700 mt-6 mb-4">Comments</h3>
+
+    <div v-if="currentRole" class="space-y-3">
+      <!-- Add new comment -->
+      <div class="relative">
+        <textarea
+          v-model="newCommentText"
+          @input="filterCommentHistory"
+          @focus="onCommentFocus"
+          @blur="hideCommentDropdown"
+          class="w-full border rounded-md p-2"
+          rows="3"
+          placeholder="Write a comment..."
+        ></textarea>
+        <BaseButton @click="addComment">Add</BaseButton>
+
+        <ul v-if="isCommentActive && commentSuggestions.length"
+            class="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto">
+          <li v-for="(item, index) in commentSuggestions" :key="index"
+              @mousedown.prevent="selectCommentSuggestion(item)"
+              class="p-2 hover:bg-gray-100 cursor-pointer">
+            {{ item }}
+          </li>
+        </ul>
+      </div>
+
+      <!-- Comments list -->
+      <div v-if="comments.length" class="space-y-2">
+        <BaseCommentComponent
+          v-for="c in comments"
+          :key="c.id"
+          :comment="c"
+        />
+      </div>
+
+      <p v-else class="text-gray-500 text-center">No comments yet.</p>
+    </div>
+
     <!-- Text Modal -->
     <transition name="fade">
       <div
@@ -174,6 +212,7 @@
             v-model="selectedRoleInModal"
             :options="roles.map(r => ({ value: r.id.toString(), label: r.name }))"
             placeholder="-- Select Role --"
+            :showPlaceholder="true"
           />
 
           <div class="flex justify-between mt-6">
@@ -190,6 +229,7 @@
 <script>
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
+import BaseCommentComponent from "@/BaseComponents/BaseCommentComponent.vue";
 import { getUsers, getUser } from "@/live-sessions/api/users";
 import { getSessions, getSession } from "@/live-sessions/api/sessions";
 import {
@@ -204,10 +244,11 @@ import {
   assignRoleToUserInSession,
   getUserRoleForSession
 } from "@/live-sessions/api/roles";
+import { getCommentsForUserInSession, addCommentForUserInSession } from "@/live-sessions/api/comments";
 import { DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
-  components: { BaseButton, BaseSelect, DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
+  components: { BaseCommentComponent, BaseButton, BaseSelect, DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
   data() {
     return {
       sessions: [],
@@ -226,6 +267,10 @@ export default {
       currentRole: null,
       showRoleModal: false,
       selectedRoleInModal: "",
+      comments: [],
+      newCommentText: "",
+      commentSuggestions: [],
+      isCommentActive: false,
     };
   },
   computed: {
@@ -243,13 +288,19 @@ export default {
     },
   },
   watch: {
-    async selectedSessionId(newSessionId) {
-      await this.fetchData(this.selectedUserId, newSessionId);
-      await this.fetchUserRole(this.selectedUserId, newSessionId);
+    selectedUserId(newVal) {
+      if (!newVal || !this.selectedSessionId) return;
+      this.$router.replace({ params: { id: newVal }, query: { session: this.selectedSessionId } });
+      this.fetchData(newVal, this.selectedSessionId);
+      this.fetchUserRole(newVal, this.selectedSessionId);
+      this.fetchComments();
     },
-    async selectedUserId(newUserId) {
-      await this.fetchData(newUserId, this.selectedSessionId);
-      await this.fetchUserRole(newUserId, this.selectedSessionId);
+    selectedSessionId(newVal) {
+      if (!newVal || !this.selectedUserId) return;
+      this.$router.replace({ params: { id: this.selectedUserId }, query: { session: newVal } });
+      this.fetchData(this.selectedUserId, newVal);
+      this.fetchUserRole(this.selectedUserId, newVal);
+      this.fetchComments();
     },
   },
   methods: {
@@ -270,6 +321,11 @@ export default {
       const res = await getRoles();
       this.roles = res.data;
     },
+    async fetchComments() {
+      if (!this.selectedUserId || !this.selectedSessionId) return;
+      const res = await getCommentsForUserInSession(this.selectedUserId, this.selectedSessionId);
+      this.comments = res.data;
+    },
     async fetchUserRole(userId, sessionId) {
       if (!userId || !sessionId) return;
       try {
@@ -288,6 +344,16 @@ export default {
       await this.fetchUserRole(this.selectedUserId, this.selectedSessionId);
       this.showRoleModal = false;
     },
+    async addComment() {
+      if (!this.newCommentText.trim()) return;
+      await addCommentForUserInSession(
+        this.selectedUserId,
+        this.selectedSessionId,
+        this.newCommentText
+      );
+      this.newCommentText = "";
+      await this.fetchComments();
+    },
     filterHistory() {
       if (!this.activeCriterion || !this.activeCriterion.last_texts) {
         this.filteredHistory = [];
@@ -297,6 +363,15 @@ export default {
       this.filteredHistory = this.activeCriterion.last_texts.filter(t => t && t.toLowerCase().includes(search));
     },
     hideDropdown() { setTimeout(() => (this.isTextareaActive = false), 100); },
+    hideCommentDropdown() { setTimeout(() => (this.isCommentActive = false), 100); },
+    onCommentFocus() {
+      if (!this.comments.length) {
+        this.commentSuggestions = [];
+        return;
+      }
+      this.commentSuggestions = [...new Set(this.comments.map(c => c.text))];
+      this.isCommentActive = true;
+    },
     selectHistory(item) { this.textDraft = item; this.filteredHistory = []; },
     async fetchData(userIdOverride, sessionIdOverride) {
       const userId = userIdOverride || this.selectedUserId;
@@ -354,11 +429,25 @@ export default {
       );
       this.cancelText();
     },
+    filterCommentHistory() {
+      if (!this.comments.length) {
+        this.commentSuggestions = [];
+        return;
+      }
+      const search = this.newCommentText.toLowerCase();
+      this.commentSuggestions = [...new Set(this.comments.map(c => c.text))]
+        .filter(t => t.toLowerCase().includes(search));
+    },
+    selectCommentSuggestion(item) {
+      this.newCommentText = item;
+      this.commentSuggestions = [];
+    },
   },
   async mounted() {
     await Promise.all([this.fetchSessions(), this.fetchUsers(), this.fetchRoles()]);
     await this.fetchData();
     await this.fetchUserRole(this.selectedUserId, this.selectedSessionId);
+    await this.fetchComments();
   },
 };
 </script>

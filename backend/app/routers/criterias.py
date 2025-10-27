@@ -7,6 +7,7 @@ from ..models import Criterion, User, UserCriterion, UserCriterionText, Session 
 from ..schemas.criterias import (
     CriterionType,
     CriterionCreate,
+    CriterionUpdate,
     CriterionRead,
     UserCriterionUpdate,
     UserCriterionRead,
@@ -48,7 +49,7 @@ def get_or_create_usercriterion(session: Session, user_id: int, criterion_id: in
     return uc
 
 # ----- Criterion -----
-@router.post("/", response_model=CriterionRead)
+@router.post("", response_model=CriterionRead)
 def create_criterion(payload: CriterionCreate, session: Session = Depends(get_db)):
     existing = session.query(Criterion).filter(Criterion.name == payload.name).first()
     if existing:
@@ -63,9 +64,40 @@ def create_criterion(payload: CriterionCreate, session: Session = Depends(get_db
     session.refresh(new_crit)
     return new_crit
 
-@router.get("/", response_model=List[CriterionRead])
+@router.get("/{criterion_id}", response_model=CriterionRead)
+def get_criterion(criterion_id: int, db: Session = Depends(get_db)):
+    criterion = db.query(Criterion).filter(Criterion.id == criterion_id).first()
+    if not criterion:
+        raise HTTPException(status_code=404, detail="Criterion not found")
+    return criterion
+
+@router.put("/{criterion_id}", response_model=CriterionRead)
+def update_criterion(criterion_id: int, payload: CriterionUpdate, db: Session = Depends(get_db)):
+    criterion = db.query(Criterion).filter(Criterion.id == criterion_id).first()
+    if not criterion:
+        raise HTTPException(status_code=404, detail="Criterion not found")
+    criterion.name = payload.name
+    db.commit()
+    db.refresh(criterion)
+    return criterion
+
+@router.get("", response_model=List[CriterionRead])
 def list_criteria(session: Session = Depends(get_db)):
-    return session.query(Criterion).all()
+    criteria = session.query(Criterion).all()
+    result = []
+    for crit in criteria:
+        # Check if there are any UserCriterion entries for this criterion
+        has_deps = session.query(UserCriterion).filter_by(criterion_id=crit.id).first() is not None
+
+        result.append({
+            "id": crit.id,
+            "name": crit.name,
+            "type": crit.type,
+            "created_at": crit.created_at,
+            "updated_at": crit.updated_at,
+            "has_dependencies": has_deps
+        })
+    return result
 
 # ----- UserCriterion -----
 @router.get("/user/{user_id}/session/{session_id}", response_model=List[UserCriterionRead])
@@ -152,3 +184,18 @@ def get_user_criteria_for_criterion(
         _ = uc.user  # preload user relationship
         uc.last_texts = [t.text_value for t in sorted(uc.text_values, key=lambda x: x.created_at, reverse=True) if not t.is_active][:5]
     return results
+
+@router.delete("/{criterion_id}")
+def delete_criterion(criterion_id: int, session: Session = Depends(get_db)):
+    crit = session.get(Criterion, criterion_id)
+    if not crit:
+        raise HTTPException(status_code=404, detail="Criterion not found")
+    
+    # Optional: check if criterion is used in any UserCriterion
+    in_use = session.query(UserCriterion).filter_by(criterion_id=criterion_id).first()
+    if in_use:
+        raise HTTPException(status_code=400, detail="Cannot delete criterion: it is in use")
+    
+    session.delete(crit)
+    session.commit()
+    return {"detail": "Criterion deleted"}

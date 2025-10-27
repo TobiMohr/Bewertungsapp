@@ -15,7 +15,7 @@ def get_db():
 
 
 # --- Create user ---
-@router.post("/", response_model=schemas.UserRead)
+@router.post("", response_model=schemas.UserRead)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     # Check if email already exists
     existing_user = db.query(models.User).filter(models.User.email == user.email).first()
@@ -62,7 +62,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 # --- Get all users ---
-@router.get("/", response_model=List[schemas.UserRead])
+@router.get("", response_model=List[schemas.UserRead])
 def get_users(team_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(models.User)
     if team_id:

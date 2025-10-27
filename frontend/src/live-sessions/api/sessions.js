@@ -9,3 +9,6 @@ export const getSession = (id) => axios.get(`${API_URL}/${id}`);
 export const updateSession = (id, session) => axios.put(`${API_URL}/${id}`, session);
 export const deleteSession = (id) => axios.delete(`${API_URL}/${id}`);
 export const copySession = (id, title) => axios.post(`${API_URL}/${id}/copy`, { title });
+
+export const getCriterionAverages = (sessionId) =>
+  axios.get(`${API_URL}/${sessionId}/criteria/averages`);

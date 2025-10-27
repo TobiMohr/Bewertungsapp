@@ -10,6 +10,11 @@
       </router-link>
     </div>
 
+    <!-- Info text -->
+    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
+      Session deletion is disabled in this version.
+    </div>
+
     <!-- Session list -->
     <ul class="divide-y divide-gray-200">
       <li
@@ -42,7 +47,8 @@
             @click="confirmDelete(session.id)"
             class="p-2 rounded-full"
             variant="delete"
-            tooltip="Delete session"
+            :disabled="true"
+            tooltip="Deletion is disabled in this version"
           >
             <TrashIcon class="h-5 w-5" />
           </BaseButton>
