@@ -93,6 +93,11 @@ const routes = [
     component: CriteriaForm,
   },
   {
+    path: "/criterias/edit/:id",
+    component: CriteriaForm,
+    props: true,
+  },
+  {
     path: "/criterias/:id/users",
     component: CriterionUserView,
     props: true,

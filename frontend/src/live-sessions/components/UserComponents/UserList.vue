@@ -10,6 +10,7 @@
       </router-link>
     </div>
 
+    <!-- Filters -->
     <div class="mb-6 flex flex-col md:flex-row md:items-end md:space-x-6">
       <!-- Session selector -->
       <div class="w-full md:w-1/4">
@@ -17,7 +18,6 @@
         <BaseSelect
           v-model="selectedSessionId"
           :options="sessionOptions"
-          placeholder="-- Select Session --"
         />
       </div>
 
@@ -27,7 +27,6 @@
         <BaseSelect
           v-model="selectedTeamId"
           :options="teamOptions"
-          placeholder="-- All Teams --"
         />
       </div>
     </div>
@@ -45,6 +44,26 @@
             @click="$router.push({ path: `/users/${user.id}`, query: { session: selectedSessionId } })"
           >
             {{ user.first_name }} {{ user.last_name }} - {{ user.email }}
+
+            <!-- Role badge -->
+            <span
+              class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium"
+              :class="userRoles[user.id]?.name
+                ? 'bg-indigo-100 text-indigo-800'
+                : 'bg-gray-100 text-gray-500'"
+            >
+              {{ userRoles[user.id]?.name || 'No Role yet' }}
+            </span>
+
+            <!-- Team badge -->
+            <span
+              class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium"
+              :class="user.team?.name
+                ? 'bg-green-100 text-green-800'
+                : 'bg-gray-100 text-gray-500'"
+            >
+              {{ user.team?.name || 'No Team yet'}}
+            </span>
           </p>
         </div>
 
@@ -98,6 +117,7 @@
 
 <script>
 import { getUsers, deleteUser } from "@/live-sessions/api/users";
+import { getUserRoleForSession } from "@/live-sessions/api/roles";
 import { getSessions } from "@/live-sessions/api/sessions";
 import { getTeams } from "@/live-sessions/api/teams";
 import { PencilIcon, TrashIcon, ChartBarIcon } from "@heroicons/vue/24/solid";
@@ -113,14 +133,14 @@ export default {
       sessions: [],
       teams: [],
       selectedSessionId: null,
-      selectedTeamId: null, // team filter
+      selectedTeamId: "", // team filter
       showDeleteModal: false,
       userToDelete: null,
+      userRoles: {},
     };
   },
   computed: {
     sessionOptions() {
-      // Flatten sessions and subsessions for the select with depth prefix
       const flattenSessions = (sessions, depth = 0) => {
         return sessions.flatMap(s => [
           { value: s.id.toString(), label: `${"— ".repeat(depth)}${s.title}` },
@@ -130,18 +150,39 @@ export default {
       return flattenSessions(this.sessions);
     },
     teamOptions() {
-      return this.teams.map(team => ({ value: team.id, label: team.name }));
+      return [
+        { value: "", label: "All Teams" },
+        { value: "no-team", label: "No Team" },
+        ...this.teams.map(team => ({ value: team.id.toString(), label: team.name })),
+        
+      ];
     },
     filteredUsers() {
-      // Keep session filter logic intact
-      console.log("Filtering users by team:", this.selectedTeamId);
-      console.log(this.users);
       let filtered = this.users;
+
       if (this.selectedTeamId) {
-        filtered = filtered.filter(user => user.team && user.team.id === Number(this.selectedTeamId));
+        if (this.selectedTeamId === "no-team") {
+          filtered = filtered.filter(user => !user.team);
+        } else {
+          filtered = filtered.filter(user => user.team && user.team.id === Number(this.selectedTeamId));
+        }
       }
-      console.log("Filtered users:", filtered);
-      return filtered;
+
+      // Sort by team name, then last name
+      return filtered.sort((a, b) => {
+        const teamA = a.team?.name || "";
+        const teamB = b.team?.name || "";
+        const cmp = teamA.localeCompare(teamB, "en", { sensitivity: "base" });
+        if (cmp !== 0) return cmp;
+        return a.last_name.localeCompare(b.last_name, "en", { sensitivity: "base" });
+      });
+    },
+  },
+  watch: {
+    async selectedSessionId(newSessionId) {
+      if (newSessionId) {
+        await this.fetchRolesForUsers(newSessionId);
+      }
     },
   },
   methods: {
@@ -168,9 +209,30 @@ export default {
           const last = a.last_name.localeCompare(b.last_name, "en", { sensitivity: "base" });
           return last !== 0 ? last : a.first_name.localeCompare(b.first_name, "en", { sensitivity: "base" });
         });
+        if (this.selectedSessionId) {
+          await this.fetchRolesForUsers(this.selectedSessionId);
+        }
       } catch (err) {
         console.error("Failed to load users:", err);
       }
+    },
+    async fetchRolesForUsers(sessionId) {
+      if (!sessionId || !this.users.length) return;
+      const roles = {};
+      await Promise.all(
+        this.users.map(async (u) => {
+          try {
+            const res = await getUserRoleForSession(u.id, sessionId);
+            roles[u.id] = {
+              id: res.data.role_id || null,
+              name: res.data.role_name || null,
+            };
+          } catch (err) {
+            roles[u.id] = { id: null, name: null };
+          }
+        })
+      );
+      this.userRoles = roles;
     },
     confirmDelete(userId) {
       this.userToDelete = userId;
@@ -181,12 +243,18 @@ export default {
         await deleteUser(this.userToDelete);
         this.showDeleteModal = false;
         this.userToDelete = null;
-        this.fetchUsers();
+        await this.fetchUsers();
       }
     },
   },
   async mounted() {
     await Promise.all([this.fetchSessions(), this.fetchTeams(), this.fetchUsers()]);
+
+    if (this.sessions.length > 0) {
+      this.selectedSessionId = this.sessions[0].id.toString();
+    }
+    await this.fetchUsers();
+    this.selectedTeamId = "";
   },
 };
 </script>

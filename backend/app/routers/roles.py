@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.sql import exists
 from typing import List
 from datetime import datetime
 
@@ -18,7 +19,7 @@ def get_db():
         db_sess.close()
 
 # --- CREATE Role ---
-@router.post("/", response_model=RoleRead)
+@router.post("", response_model=RoleRead)
 def create_role(payload: RoleCreate, db: Session = Depends(get_db)):
     existing = db.query(Role).filter_by(name=payload.name).first()
     if existing:
@@ -37,10 +38,21 @@ def create_role(payload: RoleCreate, db: Session = Depends(get_db)):
     return role
 
 # --- READ ALL Roles ---
-@router.get("/", response_model=List[RoleRead])
+@router.get("", response_model=List[RoleRead])
 def get_roles(db: Session = Depends(get_db)):
     roles = db.query(Role).all()
-    return roles
+    result = []
+    for role in roles:
+        # Check if any session criterion or user role references this role
+        has_dependencies = db.query(exists().where(SessionCriterion.role_id == role.id)).scalar() \
+                        or db.query(exists().where(UserSessionRole.role_id == role.id)).scalar()
+        result.append({
+            "id": role.id,
+            "name": role.name,
+            "description": role.description,
+            "has_dependencies": has_dependencies
+        })
+    return result
 
 # --- READ ONE Role ---
 @router.get("/{role_id}", response_model=RoleRead)
@@ -73,6 +85,12 @@ def delete_role(role_id: int, db: Session = Depends(get_db)):
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
     
+    dependent = db.query(SessionCriterion).filter_by(role_id=role.id).first()
+    if dependent:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete role: dependent session criteria exist"
+        )
     db.delete(role)
     db.commit()
     return {"status": "success", "message": f"Role {role_id} deleted"}

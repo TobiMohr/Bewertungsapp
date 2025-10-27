@@ -5,7 +5,7 @@
     class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
     @change="onChange($event)"
   >
-    <option disabled value="">{{ placeholder }}</option>
+    <option v-if="showPlaceholder" disabled value="">{{ placeholder }}</option>
 
     <template v-if="groups.length">
       <optgroup
@@ -50,6 +50,10 @@ export default {
     placeholder: {
       type: String,
       default: "Select",
+    },
+    showPlaceholder: { 
+      type: Boolean,
+      default: false, 
     },
   },
   methods: {
