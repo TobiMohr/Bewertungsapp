@@ -82,7 +82,7 @@ def export_all_xlsx(db: Session = Depends(get_db)):
         "session_id": sc.session_id,
         "criterion_id": sc.criterion_id,
         "role_id": sc.role_id,
-        "weight": sc.weight
+        "weight": round(float(sc.weight), 2)
     } for sc in db.query(models.SessionCriterion).all()])
 
     # User-Session Roles
@@ -263,13 +263,13 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
                     session_id=session_ref, criterion_id=criterion_ref, role_id=role_ref
                 ).first()
                 if assoc:
-                    assoc.weight = int(row.get("weight", 1))
+                    assoc.weight = float(row.get("weight", 1.0))
                 else:
                     assoc = models.SessionCriterion(
                         session_id=session_ref,
                         criterion_id=criterion_ref,
                         role_id=role_ref,
-                        weight=int(row.get("weight", 1))
+                        weight=float(row.get("weight", 1.0))
                     )
                     db.add(assoc)
             db.commit()
