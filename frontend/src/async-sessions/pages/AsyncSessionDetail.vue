@@ -1,6 +1,9 @@
 <template>
-  <BaseCard>
-    <template #header><h2>Session #{{ id }}</h2></template>
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <div class="mb-4 border-b pb-2">
+      <h2 class="text-2xl font-bold">Session #{{ id }}</h2>
+    </div>
+
     <div class="text-gray-600">
       Status:
       <span :class="['px-2 py-0.5 rounded', badgeClass(status)]">{{ status }}</span>
@@ -8,23 +11,22 @@
     </div>
 
     <div class="mt-4 flex gap-2">
-      <BaseButton v-if="status === 'PENDING'" @click="run">Start analysis</BaseButton>
-      <RouterLink v-if="status === 'DONE'" :to="`/async/sessions/${id}/feedback`">
-        <BaseButton>View Feedback</BaseButton>
-      </RouterLink>
+      <base-button v-if="status === 'PENDING'" @click="run">Start analysis</base-button>
+      <router-link v-if="status === 'DONE'" :to="`/async/sessions/${id}/feedback`">
+        <base-button>View Feedback</base-button>
+      </router-link>
     </div>
-  </BaseCard>
+  </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, RouterLink } from "vue-router"; // RouterLink in scope
 import { getSession, getStatus, startSession } from "../api/asyncSessions";
 import { usePolling } from "../usePolling";
 
-// ✅ Lokale Importe für Basis-Komponenten
-import BaseCard from "@/components/BaseCard.vue";
-import BaseButton from "@/components/BaseButton.vue";
+// Pfad ggf. an euer Projekt anpassen:
+import BaseButton from "@/BaseComponents/BaseButton.vue";
 
 const route = useRoute();
 const id = route.params.id;
@@ -49,12 +51,12 @@ const { start, stop } = usePolling(async () => {
 async function run() {
   await startSession(id);
   status.value = "RUNNING";
-  start();
+  await start();
 }
 
 onMounted(async () => {
   const { data } = await getSession(id);
   status.value = data?.status ?? "PENDING";
-  if (status.value === "RUNNING") start();
+  if (status.value === "RUNNING") await start();
 });
 </script>
