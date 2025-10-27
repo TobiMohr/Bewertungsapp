@@ -82,7 +82,7 @@ def export_all_xlsx(db: Session = Depends(get_db)):
         "session_id": sc.session_id,
         "criterion_id": sc.criterion_id,
         "role_id": sc.role_id,
-        "weight": sc.weight
+        "weight": round(float(sc.weight), 2)
     } for sc in db.query(models.SessionCriterion).all()])
 
     # User-Session Roles
@@ -94,6 +94,16 @@ def export_all_xlsx(db: Session = Depends(get_db)):
         "created_at": make_naive(usr.created_at),
         "updated_at": make_naive(usr.updated_at)
     } for usr in db.query(models.UserSessionRole).all()])
+
+    # User-Session Comments (optional)
+    df_user_session_comments = pd.DataFrame([{
+        "id": c.id,
+        "user_id": c.user_id,
+        "session_id": c.session_id,
+        "text": c.text,
+        "created_at": make_naive(c.created_at),
+        "updated_at": make_naive(c.updated_at)
+    } for c in db.query(models.UserSessionComment).all()])
 
     # UserCriterionText
     df_uc_texts = pd.DataFrame([{
@@ -127,6 +137,7 @@ def export_all_xlsx(db: Session = Depends(get_db)):
         df_sessions.to_excel(writer, sheet_name="Sessions", index=False)
         df_session_criteria.to_excel(writer, sheet_name="SessionCriteria", index=False)
         df_user_session_roles.to_excel(writer, sheet_name="UserSessionRoles", index=False)
+        df_user_session_comments.to_excel(writer, sheet_name="UserSessionComments", index=False)
         df_uc_texts.to_excel(writer, sheet_name="UserCriterionTexts", index=False)
         df_user_criteria.to_excel(writer, sheet_name="UserCriteria", index=False)
 
@@ -263,13 +274,13 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
                     session_id=session_ref, criterion_id=criterion_ref, role_id=role_ref
                 ).first()
                 if assoc:
-                    assoc.weight = int(row.get("weight", 1))
+                    assoc.weight = float(row.get("weight", 1.0))
                 else:
                     assoc = models.SessionCriterion(
                         session_id=session_ref,
                         criterion_id=criterion_ref,
                         role_id=role_ref,
-                        weight=int(row.get("weight", 1))
+                        weight=float(row.get("weight", 1.0))
                     )
                     db.add(assoc)
             db.commit()
@@ -305,7 +316,36 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
 
             db.commit()
 
-        # --- USER-SESSION ROLES ---
+        # --- 8. USER-SESSION COMMENTS ---
+        if "UserSessionComments" in xls.sheet_names:
+            df_usr_comments = pd.read_excel(xls, sheet_name="UserSessionComments")
+            for _, row in df_usr_comments.iterrows():
+                user_ref = user_id_map[int(row["user_id"])]
+                session_ref = session_id_map[int(row["session_id"])]
+
+                # Try to get comment by ID first
+                comment = db.query(models.UserSessionComment).get(int(row["id"]))
+
+                if comment:
+                    # Update existing comment
+                    comment.user_id = user_ref
+                    comment.session_id = session_ref
+                    comment.text = row["text"]
+                    comment.created_at = row.get("created_at") or comment.created_at
+                    comment.updated_at = row.get("updated_at") or datetime.now().isoformat()
+                else:
+                    # Insert new comment with same ID
+                    db.add(models.UserSessionComment(
+                        id=int(row["id"]),
+                        user_id=user_ref,
+                        session_id=session_ref,
+                        text=row["text"],
+                        created_at=row.get("created_at") or datetime.now().isoformat(),
+                        updated_at=row.get("updated_at") or datetime.now().isoformat()
+                    ))
+            db.commit()
+
+        # --- 9. USER-SESSION ROLES ---
         if "UserSessionRoles" in xls.sheet_names:
             df_usr_roles = pd.read_excel(xls, sheet_name="UserSessionRoles")
             for _, row in df_usr_roles.iterrows():
@@ -330,7 +370,7 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
                     ))
             db.commit()
 
-        # --- USER-CRITERIA ---
+        # --- 10. USER-CRITERIA ---
         if "UserCriteria" in xls.sheet_names:
             df_uc = pd.read_excel(xls, sheet_name="UserCriteria")
             for _, row in df_uc.iterrows():
@@ -366,6 +406,7 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
                 ("sessions", "sessions_id_seq"),
                 ("user_criteria", "user_criteria_id_seq"),
                 ("user_criterion_texts", "user_criterion_texts_id_seq"),
+                ("user_session_comments", "user_session_comments_id_seq"),
                 ("user_session_roles", "user_session_roles_id_seq"),
             ]
 
