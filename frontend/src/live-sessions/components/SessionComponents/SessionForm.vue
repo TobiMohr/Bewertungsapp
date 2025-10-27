@@ -142,7 +142,7 @@ export default {
         // Apply parent's weights
         this.criteria.forEach(c => {
           this.roles.forEach(r => {
-            this.criteriaWeightsByRole[c.id][r.id] = (parentMap[c.id] && parentMap[c.id][r.id]) || 1;
+            this.criteriaWeightsByRole[c.id][r.id] = (parentMap[c.id] && parentMap[c.id][r.id]) ?? 1;
           });
         });
       } catch (err) {
@@ -170,9 +170,9 @@ export default {
           criteria: criteriaPayload,
         };
 
-        await createSession(payload);
-
-        this.$router.push("/sessions");
+        const res = await createSession(payload);
+        const newSession = res.data;
+        this.$router.push(`/sessions/edit/${newSession.id}`);
       } catch (err) {
         console.error(err);
         alert(err.response?.data?.detail || "Failed to submit session");
