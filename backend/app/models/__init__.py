@@ -1,7 +1,8 @@
 from .criterias import Criterion
 from .sessions import Session, SessionCriterion
 from .users import User, UserCriterion, UserCriterionText, Team
-from .roles import Role, UserSessionRole
+from .roles import Role
+from .usersessions import UserSessionRole
 from ..db import Base
 
 __all__ = (

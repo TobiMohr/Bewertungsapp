@@ -32,6 +32,7 @@ class User(Base):
     # Relationships
     team = relationship("Team", back_populates="users")
     criteria = relationship("UserCriterion", back_populates="user")
+    session_comments = relationship("UserSessionComment", back_populates="user", cascade="all, delete-orphan")
 
 # --- Team table ---
 class Team(Base):
@@ -40,7 +41,7 @@ class Team(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
     created_at = Column(
-        String,
+        String, 
         default=lambda: datetime.now(timezone.utc).isoformat()
     )
 
