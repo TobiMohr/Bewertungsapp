@@ -64,7 +64,7 @@
             Existing criteria cannot be deselected. You can add new criteria and adjust weights per role.
           </p>
 
-          <div class="flex flex-col space-y-3">
+          <div class="flex flex-col space-y-3 bg-gray-50">
             <div
               v-for="crit in allCriteria"
               :key="crit.id"
@@ -72,7 +72,7 @@
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                  <span class="text-gray-800 w-40 truncate">{{ crit.name }}</span>
+                  <span class="font-semibold mb-1">{{ crit.name }}</span>
                   <div class="flex items-center space-x-2">
                     <BaseToggle
                       v-model="checkedCriteria[String(crit.id)]"
@@ -88,6 +88,9 @@
 
               <!-- Role-specific weights -->
               <div class="flex flex-wrap gap-2 mt-2" v-if="checkedCriteria[String(crit.id)]">
+                <div class="w-full mb-1">
+                  <span class="font-semibold mb-1">Weights:</span>
+                </div>
                 <div
                   v-for="role in roles"
                   :key="role.id"
@@ -97,6 +100,7 @@
                   <input
                     type="number"
                     min="0"
+                    step="0.01"
                     v-model.number="criteriaRoleWeights[crit.id][role.id]"
                     class="w-16 border border-gray-300 rounded px-1 py-1 text-center"
                   />
