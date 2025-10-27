@@ -4,7 +4,7 @@
     <SideBar v-if="showSidebar" />
 
     <!-- Main content -->
-    <main class="flex-1 p-6">
+    <main class="flex-1 p-6 overflow-auto h-screen">
       <router-view />
     </main>
   </div>
