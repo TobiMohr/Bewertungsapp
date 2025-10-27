@@ -118,14 +118,26 @@
 
     <div v-if="currentRole" class="space-y-3">
       <!-- Add new comment -->
-      <div class="flex items-start space-x-3 mb-3">
+      <div class="relative">
         <textarea
           v-model="newCommentText"
-          class="flex-1 border rounded-md p-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          @input="filterCommentHistory"
+          @focus="onCommentFocus"
+          @blur="hideCommentDropdown"
+          class="w-full border rounded-md p-2"
           rows="3"
           placeholder="Write a comment..."
         ></textarea>
         <BaseButton @click="addComment">Add</BaseButton>
+
+        <ul v-if="isCommentActive && commentSuggestions.length"
+            class="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto">
+          <li v-for="(item, index) in commentSuggestions" :key="index"
+              @mousedown.prevent="selectCommentSuggestion(item)"
+              class="p-2 hover:bg-gray-100 cursor-pointer">
+            {{ item }}
+          </li>
+        </ul>
       </div>
 
       <!-- Comments list -->
@@ -257,6 +269,8 @@ export default {
       selectedRoleInModal: "",
       comments: [],
       newCommentText: "",
+      commentSuggestions: [],
+      isCommentActive: false,
     };
   },
   computed: {
@@ -349,6 +363,15 @@ export default {
       this.filteredHistory = this.activeCriterion.last_texts.filter(t => t && t.toLowerCase().includes(search));
     },
     hideDropdown() { setTimeout(() => (this.isTextareaActive = false), 100); },
+    hideCommentDropdown() { setTimeout(() => (this.isCommentActive = false), 100); },
+    onCommentFocus() {
+      if (!this.comments.length) {
+        this.commentSuggestions = [];
+        return;
+      }
+      this.commentSuggestions = [...new Set(this.comments.map(c => c.text))];
+      this.isCommentActive = true;
+    },
     selectHistory(item) { this.textDraft = item; this.filteredHistory = []; },
     async fetchData(userIdOverride, sessionIdOverride) {
       const userId = userIdOverride || this.selectedUserId;
@@ -405,6 +428,19 @@ export default {
         a.criterion.name.localeCompare(b.criterion.name, "en", { sensitivity: "base" })
       );
       this.cancelText();
+    },
+    filterCommentHistory() {
+      if (!this.comments.length) {
+        this.commentSuggestions = [];
+        return;
+      }
+      const search = this.newCommentText.toLowerCase();
+      this.commentSuggestions = [...new Set(this.comments.map(c => c.text))]
+        .filter(t => t.toLowerCase().includes(search));
+    },
+    selectCommentSuggestion(item) {
+      this.newCommentText = item;
+      this.commentSuggestions = [];
     },
   },
   async mounted() {
