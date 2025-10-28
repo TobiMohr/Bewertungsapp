@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..models.roles import Role
 from ..models.usersessions import UserSessionRole, UserSessionComment
@@ -64,3 +64,19 @@ def add_comment(session_id: int, user_id: int, req: CommentCreateRequest, db: Se
     db.commit()
     db.refresh(comment)
     return comment
+
+@router.delete("/{session_id}/users/{user_id}/comments/{comment_id}")
+def delete_comment(session_id: int, user_id: int, comment_id: int, db: Session = Depends(get_db)):
+    comment = (
+        db.query(UserSessionComment)
+        .filter_by(id=comment_id, session_id=session_id, user_id=user_id)
+        .first()
+    )
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    db.delete(comment)
+    db.commit()
+
+    return {"message": "Comment deleted successfully", "deleted_comment_id": comment_id}
