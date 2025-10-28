@@ -114,6 +114,69 @@
       No criteria assigned to this user.
     </p>
 
+    <h3 class="text-xl font-semibold text-gray-700 mt-6 mb-4">Comments</h3>
+
+    <div v-if="currentRole" class="space-y-3">
+      <!-- Add new comment -->
+      <div class="relative">
+        <textarea
+              v-model="newCommentText"
+              @input="filterCommentHistory"
+              @focus="onCommentFocus"
+              @blur="hideCommentDropdown"
+              @keydown.down.prevent="navigateCommentSuggestions('down')"
+              @keydown.up.prevent="navigateCommentSuggestions('up')"
+              @keydown.enter.prevent="confirmCommentSuggestion"
+              class="w-full border rounded-md p-2"
+              rows="3"
+              placeholder="Write a comment..."
+            ></textarea>
+        <ul v-if="isCommentActive && commentSuggestions.length"
+            class="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto">
+          <!-- Header -->
+          <li class="bg-indigo-50 text-indigo-700 text-xs font-semibold uppercase px-3 py-1 border-b border-indigo-100">
+            Suggestions
+          </li>
+          <li
+            v-for="(item, index) in commentSuggestions"
+            :key="index"
+            @mousedown.prevent="selectCommentSuggestion(item)"
+            :class="[
+              'p-2 text-sm cursor-pointer transition-colors duration-100',
+              index === commentHighlightIndex
+                ? 'bg-indigo-100 text-indigo-800 font-medium'
+                : 'hover:bg-indigo-50 text-gray-700'
+            ]"
+          >
+            {{ item }}
+          </li>
+        </ul>
+        <BaseButton @click="addComment">Add</BaseButton>
+      </div>
+
+      <!-- Comments list -->
+      <div v-if="comments.length" class="space-y-2">
+        <BaseCommentComponent
+          v-for="c in comments"
+          :key="c.id"
+          :comment="c"
+          @delete-comment="confirmDeleteComment"
+        />
+        <!-- Confirm Modal -->
+        <ConfirmModal
+          :isOpen="showDeleteModal"
+          title="Delete Comment"
+          message="Are you sure you want to delete this comment?"
+          @confirm="deleteConfirmed"
+          @cancel="showDeleteModal = false"
+        />
+      </div>
+
+      
+
+      <p v-else class="text-gray-500 text-center">No comments yet.</p>
+    </div>
+
     <!-- Text Modal -->
     <transition name="fade">
       <div
@@ -128,12 +191,15 @@
           <div class="relative">
             <textarea
               v-model="textDraft"
-              class="w-full border rounded-md p-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               @input="filterHistory"
-              @focus="isTextareaActive = true"
+              @focus="() => (isTextareaActive = true)"
               @blur="hideDropdown"
-              rows="4"
-              placeholder="Enter text..."
+              @keydown.down.prevent="navigateTextHistory('down')"
+              @keydown.up.prevent="navigateTextHistory('up')"
+              @keydown.enter.prevent="confirmTextHistory"
+              class="w-full border rounded-md p-2"
+              rows="3"
+              placeholder="Write text..."
             ></textarea>
 
             <ul
@@ -144,7 +210,10 @@
                 v-for="(item, index) in filteredHistory"
                 :key="index"
                 @mousedown.prevent="selectHistory(item)"
-                class="p-2 hover:bg-gray-100 cursor-pointer"
+                :class="[
+                  'p-2 cursor-pointer',
+                  index === textHighlightIndex ? 'bg-indigo-100' : 'hover:bg-gray-100'
+                ]"
               >
                 {{ item }}
               </li>
@@ -191,6 +260,8 @@
 <script>
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
+import ConfirmModal from "@/BaseComponents/ConfirmModal.vue";
+import BaseCommentComponent from "@/BaseComponents/BaseCommentComponent.vue";
 import { getUsers, getUser } from "@/live-sessions/api/users";
 import { getSessions, getSession } from "@/live-sessions/api/sessions";
 import {
@@ -205,10 +276,11 @@ import {
   assignRoleToUserInSession,
   getUserRoleForSession
 } from "@/live-sessions/api/roles";
+import { getCommentsForUserInSession, addCommentForUserInSession, deleteCommentForUserInSession } from "@/live-sessions/api/comments";
 import { DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
-  components: { BaseButton, BaseSelect, DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
+  components: { BaseCommentComponent, BaseButton, BaseSelect, ConfirmModal, DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
   data() {
     return {
       sessions: [],
@@ -227,6 +299,14 @@ export default {
       currentRole: null,
       showRoleModal: false,
       selectedRoleInModal: "",
+      comments: [],
+      showDeleteModal: false,
+      commentToDelete: null,
+      newCommentText: "",
+      commentSuggestions: [],
+      isCommentActive: false,
+      commentHighlightIndex: -1,
+      textHighlightIndex: -1,
     };
   },
   computed: {
@@ -244,13 +324,19 @@ export default {
     },
   },
   watch: {
-    async selectedSessionId(newSessionId) {
-      await this.fetchData(this.selectedUserId, newSessionId);
-      await this.fetchUserRole(this.selectedUserId, newSessionId);
+    selectedUserId(newVal) {
+      if (!newVal || !this.selectedSessionId) return;
+      this.$router.replace({ params: { id: newVal }, query: { session: this.selectedSessionId } });
+      this.fetchData(newVal, this.selectedSessionId);
+      this.fetchUserRole(newVal, this.selectedSessionId);
+      this.fetchComments();
     },
-    async selectedUserId(newUserId) {
-      await this.fetchData(newUserId, this.selectedSessionId);
-      await this.fetchUserRole(newUserId, this.selectedSessionId);
+    selectedSessionId(newVal) {
+      if (!newVal || !this.selectedUserId) return;
+      this.$router.replace({ params: { id: this.selectedUserId }, query: { session: newVal } });
+      this.fetchData(this.selectedUserId, newVal);
+      this.fetchUserRole(this.selectedUserId, newVal);
+      this.fetchComments();
     },
   },
   methods: {
@@ -271,6 +357,11 @@ export default {
       const res = await getRoles();
       this.roles = res.data;
     },
+    async fetchComments() {
+      if (!this.selectedUserId || !this.selectedSessionId) return;
+      const res = await getCommentsForUserInSession(this.selectedUserId, this.selectedSessionId);
+      this.comments = res.data;
+    },
     async fetchUserRole(userId, sessionId) {
       if (!userId || !sessionId) return;
       try {
@@ -289,15 +380,40 @@ export default {
       await this.fetchUserRole(this.selectedUserId, this.selectedSessionId);
       this.showRoleModal = false;
     },
+    async addComment() {
+      if (!this.newCommentText.trim()) return;
+      await addCommentForUserInSession(
+        this.selectedUserId,
+        this.selectedSessionId,
+        this.newCommentText
+      );
+      this.newCommentText = "";
+      this.commentHighlightIndex = -1;
+      await this.fetchComments();
+    },
     filterHistory() {
       if (!this.activeCriterion || !this.activeCriterion.last_texts) {
         this.filteredHistory = [];
+        this.textHighlightIndex = -1;
         return;
       }
       const search = this.textDraft.toLowerCase();
-      this.filteredHistory = this.activeCriterion.last_texts.filter(t => t && t.toLowerCase().includes(search));
+      this.filteredHistory = this.activeCriterion.last_texts.filter(
+        t => t && t.toLowerCase().includes(search)
+      );
+      this.textHighlightIndex = -1;
     },
     hideDropdown() { setTimeout(() => (this.isTextareaActive = false), 100); },
+    hideCommentDropdown() { setTimeout(() => (this.isCommentActive = false), 100); },
+    onCommentFocus() {
+      if (!this.comments.length) {
+        this.commentSuggestions = [];
+        return;
+      }
+      this.commentSuggestions = [...new Set(this.comments.map(c => c.text))];
+      this.isCommentActive = true;
+      this.commentHighlightIndex = -1;
+    },
     selectHistory(item) { this.textDraft = item; this.filteredHistory = []; },
     async fetchData(userIdOverride, sessionIdOverride) {
       const userId = userIdOverride || this.selectedUserId;
@@ -333,6 +449,7 @@ export default {
       this.activeCriterion = c;
       this.textDraft = c.active_text || "";
       this.showTextModal = true;
+      this.textHighlightIndex = -1;
       this.filterHistory();
     },
     cancelText() {
@@ -340,6 +457,30 @@ export default {
       this.activeCriterion = null;
       this.textDraft = "";
       this.filteredHistory = [];
+    },
+    navigateTextHistory(direction) {
+      if (!this.filteredHistory.length) return;
+
+      if (direction === 'down') {
+        this.textHighlightIndex =
+          (this.textHighlightIndex + 1) % this.filteredHistory.length;
+      } else if (direction === 'up') {
+        this.textHighlightIndex =
+          (this.textHighlightIndex - 1 + this.filteredHistory.length) %
+          this.filteredHistory.length;
+      }
+    },
+
+    confirmTextHistory() {
+      if (
+        this.textHighlightIndex >= 0 &&
+        this.textHighlightIndex < this.filteredHistory.length
+      ) {
+        const selected = this.filteredHistory[this.textHighlightIndex];
+        this.selectHistory(selected);
+      } else {
+        this.isTextareaActive = false;
+      }
     },
     async saveText() {
       if (!this.activeCriterion) return;
@@ -355,11 +496,68 @@ export default {
       );
       this.cancelText();
     },
+    navigateCommentSuggestions(direction) {
+      if (!this.commentSuggestions.length) return;
+
+      if (direction === 'down') {
+        this.commentHighlightIndex =
+          (this.commentHighlightIndex + 1) % this.commentSuggestions.length;
+      } else if (direction === 'up') {
+        this.commentHighlightIndex =
+          (this.commentHighlightIndex - 1 + this.commentSuggestions.length) %
+          this.commentSuggestions.length;
+      }
+    },
+
+    confirmCommentSuggestion() {
+      if (
+        this.commentHighlightIndex >= 0 &&
+        this.commentHighlightIndex < this.commentSuggestions.length
+      ) {
+        const selected = this.commentSuggestions[this.commentHighlightIndex];
+        this.selectCommentSuggestion(selected);
+        this.commentHighlightIndex = -1;
+      } else if (this.newCommentText.trim()) {
+        this.addComment();
+      }
+    },
+    filterCommentHistory() {
+      if (!this.comments.length) {
+        this.commentSuggestions = [];
+        this.commentHighlightIndex = -1;
+        return;
+      }
+      const search = this.newCommentText.toLowerCase();
+      this.commentSuggestions = [...new Set(this.comments.map(c => c.text))]
+        .filter(t => t.toLowerCase().includes(search));
+      this.commentHighlightIndex = -1;
+    },
+    selectCommentSuggestion(item) {
+      this.newCommentText = item;
+      this.commentSuggestions = [];
+    },
+    confirmDeleteComment(commentId) {
+      this.commentToDelete = commentId;
+      this.showDeleteModal = true;
+    },
+    async deleteConfirmed() {
+      if (!this.commentToDelete) return;
+
+      try {
+        await deleteCommentForUserInSession(this.selectedUserId, this.selectedSessionId, this.commentToDelete);
+        this.showDeleteModal = false;
+        this.commentToDelete = null;
+        await this.fetchComments(); // refresh comments list
+      } catch (err) {
+        console.error("Failed to delete comment:", err);
+      }
+    },
   },
   async mounted() {
     await Promise.all([this.fetchSessions(), this.fetchUsers(), this.fetchRoles()]);
     await this.fetchData();
     await this.fetchUserRole(this.selectedUserId, this.selectedSessionId);
+    await this.fetchComments();
   },
 };
 </script>
