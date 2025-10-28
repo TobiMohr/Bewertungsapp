@@ -286,7 +286,7 @@ export default {
             if (weight > 0) payloadCriteria.push({ id: Number(cid), role_id: Number(rid), weight: Number(weight) });
           });
         });
-        await updateSession(this.session.id, { title: this.form.title, description: this.form.description, criteria: payloadCriteria });
+        await updateSession(this.session.id, { title: this.form.title, description: this.form.description, criteria: payloadCriteria, parent_id: this.session.parent_id });
         window.location.reload();
       } catch (err) { console.error(err); alert("Failed to update criteria"); }
     },
