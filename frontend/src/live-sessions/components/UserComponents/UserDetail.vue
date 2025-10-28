@@ -516,10 +516,10 @@ export default {
       ) {
         const selected = this.commentSuggestions[this.commentHighlightIndex];
         this.selectCommentSuggestion(selected);
-      } else {
+        this.commentHighlightIndex = -1;
+      } else if (this.newCommentText.trim()) {
         this.addComment();
       }
-      this.commentHighlightIndex = -1;
     },
     filterCommentHistory() {
       if (!this.comments.length) {
