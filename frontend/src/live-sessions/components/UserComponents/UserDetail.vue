@@ -160,6 +160,7 @@
           v-for="c in comments"
           :key="c.id"
           :comment="c"
+          @delete-comment="deleteComment"
         />
       </div>
 
@@ -264,7 +265,7 @@ import {
   assignRoleToUserInSession,
   getUserRoleForSession
 } from "@/live-sessions/api/roles";
-import { getCommentsForUserInSession, addCommentForUserInSession } from "@/live-sessions/api/comments";
+import { getCommentsForUserInSession, addCommentForUserInSession, deleteCommentForUserInSession } from "@/live-sessions/api/comments";
 import { DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
@@ -465,7 +466,6 @@ export default {
         const selected = this.filteredHistory[this.textHighlightIndex];
         this.selectHistory(selected);
       } else {
-        // Optional: close dropdown on enter when nothing highlighted
         this.isTextareaActive = false;
       }
     },
@@ -523,6 +523,10 @@ export default {
       this.newCommentText = item;
       this.commentSuggestions = [];
     },
+    async deleteComment(commentId) {
+      await deleteCommentForUserInSession(this.selectedUserId, this.selectedSessionId, commentId);
+      await this.fetchComments();
+    }
   },
   async mounted() {
     await Promise.all([this.fetchSessions(), this.fetchUsers(), this.fetchRoles()]);
