@@ -275,7 +275,7 @@ export default {
     },
     openEditModal() { this.editForm.title = this.form.title; this.editForm.description = this.form.description; this.showEditModal = true; },
     async updateSessionHandler() {
-      try { await updateSession(this.session.id, { title: this.editForm.title, description: this.editForm.description }); this.form.title = this.editForm.title; this.form.description = this.editForm.description; this.showEditModal = false; }
+      try { await updateSession(this.session.id, { title: this.editForm.title, description: this.editForm.description, parent_id: this.session.parent_id }); this.form.title = this.editForm.title; this.form.description = this.editForm.description; this.showEditModal = false; }
       catch (err) { console.error(err); alert("Failed to update session"); }
     },
     async updateCriteriaHandler() {
@@ -286,7 +286,7 @@ export default {
             if (weight > 0) payloadCriteria.push({ id: Number(cid), role_id: Number(rid), weight: Number(weight) });
           });
         });
-        await updateSession(this.session.id, { title: this.form.title, description: this.form.description, criteria: payloadCriteria });
+        await updateSession(this.session.id, { title: this.form.title, description: this.form.description, criteria: payloadCriteria, parent_id: this.session.parent_id });
         window.location.reload();
       } catch (err) { console.error(err); alert("Failed to update criteria"); }
     },
