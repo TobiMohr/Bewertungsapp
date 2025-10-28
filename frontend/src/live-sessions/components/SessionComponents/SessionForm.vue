@@ -48,14 +48,15 @@
               <span class="font-semibold">{{ crit.name }}</span>
               <BaseToggle v-model="checkedCriteria[crit.id]" />
             </div>
-
+            <!-- Weights per role -->
             <div v-if="checkedCriteria[crit.id]" class="mt-2">
               <div class="font-semibold mb-1">Weights:</div>
               <div v-for="role in roles" :key="role.id" class="flex items-center justify-between mb-1">
                 <span>{{ role.name }}:</span>
                 <input
                   type="number"
-                  min="1"
+                  min="0"
+                  step="0.01"
                   v-model.number="criteriaWeightsByRole[crit.id][role.id]"
                   class="w-16 border rounded px-1 text-center"
                 />
@@ -115,7 +116,7 @@ export default {
       this.criteria.forEach(c => {
         if (!this.criteriaWeightsByRole[c.id]) this.criteriaWeightsByRole[c.id] = {};
         this.roles.forEach(r => {
-          if (!this.criteriaWeightsByRole[c.id][r.id]) this.criteriaWeightsByRole[c.id][r.id] = 1;
+          if (!this.criteriaWeightsByRole[c.id][r.id]) this.criteriaWeightsByRole[c.id][r.id] = 1.0;
         });
       });
     },

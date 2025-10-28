@@ -28,6 +28,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         last_name=user.last_name,
         team_id=user.team_id,
         email=user.email,
+        username=user.username,
         password_hash=security.hash_password(user.password)
     )
     db.add(new_user)
@@ -138,6 +139,7 @@ def update_user(user_id: int, updated_user: schemas.UserUpdate, session: Session
     user.last_name = updated_user.last_name
     user.team_id = updated_user.team_id
     user.email = updated_user.email
+    user.username = updated_user.username
     
     session.commit()
     session.refresh(user)

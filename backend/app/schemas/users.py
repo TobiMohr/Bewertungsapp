@@ -8,6 +8,7 @@ class UserCreate(BaseModel):
     last_name: str
     team_id: Optional[int] = None
     email: EmailStr
+    username: str
     password: str
 
 class UserUpdate(BaseModel):
@@ -15,6 +16,7 @@ class UserUpdate(BaseModel):
     last_name:str
     team_id: Optional[int] = None
     email: EmailStr
+    username: str
 
 class UserRead(BaseModel):
     id: int
@@ -22,6 +24,7 @@ class UserRead(BaseModel):
     last_name: str
     team: Optional[TeamRead] = None
     email: EmailStr
+    username: str
 
     class Config:
         orm_mode = True  # allows SQLAlchemy objects to be returned directly

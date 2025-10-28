@@ -34,7 +34,7 @@ class CriterionRead(CriterionBase):
 class CriterionWithWeightRead(BaseModel):
     criterion: CriterionRead
     role_id: int
-    weight: int
+    weight: float
 
     class Config:
         orm_mode = True
@@ -43,7 +43,7 @@ class CriterionWithWeightRead(BaseModel):
 class CriterionWithWeightCreate(BaseModel):
     id: int
     role_id: int
-    weight: int = 1
+    weight: float = 1.0
 
 
 # ---------- UserCriterion ----------

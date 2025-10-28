@@ -18,6 +18,7 @@ class User(Base):
     first_name = Column(String, index=True)
     last_name = Column(String, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
+    username = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     created_at = Column(
         String, 
@@ -33,6 +34,7 @@ class User(Base):
     team = relationship("Team", back_populates="users")
     criteria = relationship("UserCriterion", back_populates="user")
     session_comments = relationship("UserSessionComment", back_populates="user", cascade="all, delete-orphan")
+    messages = relationship("Message", back_populates="user")
 
 # --- Team table ---
 class Team(Base):
