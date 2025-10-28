@@ -275,7 +275,7 @@ export default {
     },
     openEditModal() { this.editForm.title = this.form.title; this.editForm.description = this.form.description; this.showEditModal = true; },
     async updateSessionHandler() {
-      try { await updateSession(this.session.id, { title: this.editForm.title, description: this.editForm.description }); this.form.title = this.editForm.title; this.form.description = this.editForm.description; this.showEditModal = false; }
+      try { await updateSession(this.session.id, { title: this.editForm.title, description: this.editForm.description, parent_id: this.session.parent_id }); this.form.title = this.editForm.title; this.form.description = this.editForm.description; this.showEditModal = false; }
       catch (err) { console.error(err); alert("Failed to update session"); }
     },
     async updateCriteriaHandler() {
