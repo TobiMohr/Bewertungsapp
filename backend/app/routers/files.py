@@ -36,6 +36,7 @@ def export_all_xlsx(db: Session = Depends(get_db)):
         "first_name": u.first_name,
         "last_name": u.last_name,
         "email": u.email,
+        "username": u.username,
         "password_hash": u.password_hash,
         "team_id": u.team.id if u.team else None,
         "created_at": make_naive(u.created_at),
@@ -208,6 +209,7 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
                     # Update fields
                     user.first_name = row["first_name"]
                     user.last_name = row["last_name"]
+                    user.username = row["username"]
                     user.team_id = team_id_map.get(int(row["team_id"])) if not pd.isna(row.get("team_id")) else None
                     user_id_map[int(row["id"])] = user.id
                 else:
@@ -216,6 +218,7 @@ async def import_all_xlsx(file: UploadFile = File(...), db: Session = Depends(ge
                         first_name=row["first_name"],
                         last_name=row["last_name"],
                         email=row["email"],
+                        username=row["username"],
                         password_hash=row.get("password_hash") or hash_password("test"),
                         team_id=team_id_map.get(int(row["team_id"])) if not pd.isna(row.get("team_id")) else None
                     )
