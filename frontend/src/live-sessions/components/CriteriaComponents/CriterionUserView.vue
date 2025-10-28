@@ -91,8 +91,11 @@
               <div v-else-if="criterion?.type === 'text'" class="relative">
                 <textarea
                   v-model="uc.text_value"
-                  @focus="uc.isTextareaActive = true"
+                  @focus="onTextareaFocus(uc)"
                   @blur="hideDropdown(uc)"
+                  @keydown.down.prevent="moveHistoryHighlight(1, uc)"
+                  @keydown.up.prevent="moveHistoryHighlight(-1, uc)"
+                  @keydown.enter.prevent="confirmHistorySelection(uc)"
                   class="border rounded-md p-2 w-full text-gray-700 resize-y"
                   placeholder="Enter text..."
                   rows="3"
@@ -116,7 +119,12 @@
                     v-for="(item, index) in uc.historyOptions"
                     :key="index"
                     @mousedown.prevent="selectHistory(uc, item)"
-                    class="p-2 hover:bg-gray-100 cursor-pointer"
+                    :class="[
+                      'p-2 cursor-pointer',
+                      index === historyHighlightIndex && uc === activeUserCriterion
+                        ? 'bg-indigo-100 font-medium'
+                        : 'hover:bg-gray-100'
+                    ]"
                   >
                     {{ item }}
                   </li>
@@ -159,6 +167,8 @@ export default {
       selectedSessionId: this.$route.query.session || "",
       criterion: null,
       userCriteria: [],
+      activeUserCriterion: null,
+      historyHighlightIndex: -1,
     };
   },
   computed: {
@@ -229,7 +239,13 @@ export default {
       await setBooleanValue(this.selectedCriterionId, uc.user.id, this.selectedSessionId, uc.is_fulfilled);
     },
     hideDropdown(uc) {
-      setTimeout(() => (uc.isTextareaActive = false), 100);
+      setTimeout(() => {
+        uc.isTextareaActive = false;
+        if (this.activeUserCriterion === uc) {
+          this.activeUserCriterion = null;
+          this.historyHighlightIndex = -1;
+        }
+      }, 100);
     },
     selectHistory(uc, text) {
       uc.text_value = text;
@@ -246,6 +262,32 @@ export default {
 
       uc.isTextareaActive = false;
       this.fetchData();
+    },
+    onTextareaFocus(uc) {
+      uc.isTextareaActive = true;
+      this.activeUserCriterion = uc;
+      this.historyHighlightIndex = -1;
+    },
+    moveHistoryHighlight(direction, uc) {
+      if (!uc.isTextareaActive || !uc.historyOptions?.length) return;
+
+      const newIndex = this.historyHighlightIndex + direction;
+      if (newIndex < 0 || newIndex >= uc.historyOptions.length) return;
+      this.historyHighlightIndex = newIndex;
+    },
+    confirmHistorySelection(uc) {
+      if (
+        this.activeUserCriterion === uc &&
+        this.historyHighlightIndex >= 0 &&
+        this.historyHighlightIndex < uc.historyOptions.length
+      ) {
+        const selected = uc.historyOptions[this.historyHighlightIndex];
+        this.selectHistory(uc, selected);
+      } else {
+        this.updateText(uc);
+      }
+      this.historyHighlightIndex = -1;
+      this.activeUserCriterion = null;
     },
   },
   async mounted() {
