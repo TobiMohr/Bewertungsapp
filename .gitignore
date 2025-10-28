@@ -22,3 +22,12 @@ __pycache__/
 criteriaService/
 sessionService/
 userService/
+
+# --- Tailscale ---
+tailscale-*/state/
+tailscale-shared/state/
+tailscale-backend/state/
+tailscale-nginx/state/
+tailscale-frontend/state/
+tailscale.sock
+tailscaled.log
