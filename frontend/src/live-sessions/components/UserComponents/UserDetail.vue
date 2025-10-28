@@ -131,22 +131,27 @@
               rows="3"
               placeholder="Write a comment..."
             ></textarea>
-        <BaseButton @click="addComment">Add</BaseButton>
-
         <ul v-if="isCommentActive && commentSuggestions.length"
             class="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto">
+          <!-- Header -->
+          <li class="bg-indigo-50 text-indigo-700 text-xs font-semibold uppercase px-3 py-1 border-b border-indigo-100">
+            Suggestions
+          </li>
           <li
             v-for="(item, index) in commentSuggestions"
             :key="index"
             @mousedown.prevent="selectCommentSuggestion(item)"
             :class="[
-              'p-2 cursor-pointer',
-              index === commentHighlightIndex ? 'bg-indigo-100' : 'hover:bg-gray-100'
+              'p-2 text-sm cursor-pointer transition-colors duration-100',
+              index === commentHighlightIndex
+                ? 'bg-indigo-100 text-indigo-800 font-medium'
+                : 'hover:bg-indigo-50 text-gray-700'
             ]"
           >
             {{ item }}
           </li>
         </ul>
+        <BaseButton @click="addComment">Add</BaseButton>
       </div>
 
       <!-- Comments list -->
