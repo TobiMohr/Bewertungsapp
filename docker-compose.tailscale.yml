@@ -1,0 +1,86 @@
+version: "3.7"
+services:
+  tailscale-db:
+    image: tailscale/tailscale:latest
+    hostname: tailscale-db
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+    volumes:
+      - ${PWD}/tailscale-db/state:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    depends_on:
+      - tailscale-db
+    network_mode: "service:tailscale-db"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+  tailscale-backend:
+    image: tailscale/tailscale:latest
+    hostname: tailscale-backend
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+    volumes:
+      - ${PWD}/tailscale-backend/state:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    env_file:
+      - .env
+    environment:
+      DOCKER_ENV: "true"
+    network_mode: "service:tailscale-backend"
+    depends_on:
+      - tailscale-backend
+      - db
+    volumes:
+      - ./backend:/app
+
+  tailscale-frontend:
+    image: tailscale/tailscale:latest
+    hostname: tailscale-frontend
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+    volumes:
+      - ${PWD}/tailscale-frontend/state:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VUE_APP_API_URL: ${VUE_APP_API_URL} 
+    network_mode: "service:tailscale-frontend"
+    depends_on:
+      - tailscale-frontend
+      - backend
+
+volumes:
+  pgdata:
