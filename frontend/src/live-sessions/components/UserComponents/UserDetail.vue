@@ -120,21 +120,30 @@
       <!-- Add new comment -->
       <div class="relative">
         <textarea
-          v-model="newCommentText"
-          @input="filterCommentHistory"
-          @focus="onCommentFocus"
-          @blur="hideCommentDropdown"
-          class="w-full border rounded-md p-2"
-          rows="3"
-          placeholder="Write a comment..."
-        ></textarea>
+              v-model="newCommentText"
+              @input="filterCommentHistory"
+              @focus="onCommentFocus"
+              @blur="hideCommentDropdown"
+              @keydown.down.prevent="navigateCommentSuggestions('down')"
+              @keydown.up.prevent="navigateCommentSuggestions('up')"
+              @keydown.enter.prevent="confirmCommentSuggestion"
+              class="w-full border rounded-md p-2"
+              rows="3"
+              placeholder="Write a comment..."
+            ></textarea>
         <BaseButton @click="addComment">Add</BaseButton>
 
         <ul v-if="isCommentActive && commentSuggestions.length"
             class="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto">
-          <li v-for="(item, index) in commentSuggestions" :key="index"
-              @mousedown.prevent="selectCommentSuggestion(item)"
-              class="p-2 hover:bg-gray-100 cursor-pointer">
+          <li
+            v-for="(item, index) in commentSuggestions"
+            :key="index"
+            @mousedown.prevent="selectCommentSuggestion(item)"
+            :class="[
+              'p-2 cursor-pointer',
+              index === commentHighlightIndex ? 'bg-indigo-100' : 'hover:bg-gray-100'
+            ]"
+          >
             {{ item }}
           </li>
         </ul>
@@ -166,12 +175,15 @@
           <div class="relative">
             <textarea
               v-model="textDraft"
-              class="w-full border rounded-md p-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               @input="filterHistory"
-              @focus="isTextareaActive = true"
+              @focus="() => (isTextareaActive = true)"
               @blur="hideDropdown"
-              rows="4"
-              placeholder="Enter text..."
+              @keydown.down.prevent="navigateTextHistory('down')"
+              @keydown.up.prevent="navigateTextHistory('up')"
+              @keydown.enter.prevent="confirmTextHistory"
+              class="w-full border rounded-md p-2"
+              rows="3"
+              placeholder="Write text..."
             ></textarea>
 
             <ul
@@ -182,7 +194,10 @@
                 v-for="(item, index) in filteredHistory"
                 :key="index"
                 @mousedown.prevent="selectHistory(item)"
-                class="p-2 hover:bg-gray-100 cursor-pointer"
+                :class="[
+                  'p-2 cursor-pointer',
+                  index === textHighlightIndex ? 'bg-indigo-100' : 'hover:bg-gray-100'
+                ]"
               >
                 {{ item }}
               </li>
@@ -271,6 +286,8 @@ export default {
       newCommentText: "",
       commentSuggestions: [],
       isCommentActive: false,
+      commentHighlightIndex: -1,
+      textHighlightIndex: -1,
     };
   },
   computed: {
@@ -352,15 +369,20 @@ export default {
         this.newCommentText
       );
       this.newCommentText = "";
+      this.commentHighlightIndex = -1;
       await this.fetchComments();
     },
     filterHistory() {
       if (!this.activeCriterion || !this.activeCriterion.last_texts) {
         this.filteredHistory = [];
+        this.textHighlightIndex = -1;
         return;
       }
       const search = this.textDraft.toLowerCase();
-      this.filteredHistory = this.activeCriterion.last_texts.filter(t => t && t.toLowerCase().includes(search));
+      this.filteredHistory = this.activeCriterion.last_texts.filter(
+        t => t && t.toLowerCase().includes(search)
+      );
+      this.textHighlightIndex = -1;
     },
     hideDropdown() { setTimeout(() => (this.isTextareaActive = false), 100); },
     hideCommentDropdown() { setTimeout(() => (this.isCommentActive = false), 100); },
@@ -371,6 +393,7 @@ export default {
       }
       this.commentSuggestions = [...new Set(this.comments.map(c => c.text))];
       this.isCommentActive = true;
+      this.commentHighlightIndex = -1;
     },
     selectHistory(item) { this.textDraft = item; this.filteredHistory = []; },
     async fetchData(userIdOverride, sessionIdOverride) {
@@ -407,6 +430,7 @@ export default {
       this.activeCriterion = c;
       this.textDraft = c.active_text || "";
       this.showTextModal = true;
+      this.textHighlightIndex = -1;
       this.filterHistory();
     },
     cancelText() {
@@ -414,6 +438,31 @@ export default {
       this.activeCriterion = null;
       this.textDraft = "";
       this.filteredHistory = [];
+    },
+    navigateTextHistory(direction) {
+      if (!this.filteredHistory.length) return;
+
+      if (direction === 'down') {
+        this.textHighlightIndex =
+          (this.textHighlightIndex + 1) % this.filteredHistory.length;
+      } else if (direction === 'up') {
+        this.textHighlightIndex =
+          (this.textHighlightIndex - 1 + this.filteredHistory.length) %
+          this.filteredHistory.length;
+      }
+    },
+
+    confirmTextHistory() {
+      if (
+        this.textHighlightIndex >= 0 &&
+        this.textHighlightIndex < this.filteredHistory.length
+      ) {
+        const selected = this.filteredHistory[this.textHighlightIndex];
+        this.selectHistory(selected);
+      } else {
+        // Optional: close dropdown on enter when nothing highlighted
+        this.isTextareaActive = false;
+      }
     },
     async saveText() {
       if (!this.activeCriterion) return;
@@ -429,14 +478,41 @@ export default {
       );
       this.cancelText();
     },
+    navigateCommentSuggestions(direction) {
+      if (!this.commentSuggestions.length) return;
+
+      if (direction === 'down') {
+        this.commentHighlightIndex =
+          (this.commentHighlightIndex + 1) % this.commentSuggestions.length;
+      } else if (direction === 'up') {
+        this.commentHighlightIndex =
+          (this.commentHighlightIndex - 1 + this.commentSuggestions.length) %
+          this.commentSuggestions.length;
+      }
+    },
+
+    confirmCommentSuggestion() {
+      if (
+        this.commentHighlightIndex >= 0 &&
+        this.commentHighlightIndex < this.commentSuggestions.length
+      ) {
+        const selected = this.commentSuggestions[this.commentHighlightIndex];
+        this.selectCommentSuggestion(selected);
+      } else {
+        this.addComment();
+      }
+      this.commentHighlightIndex = -1;
+    },
     filterCommentHistory() {
       if (!this.comments.length) {
         this.commentSuggestions = [];
+        this.commentHighlightIndex = -1;
         return;
       }
       const search = this.newCommentText.toLowerCase();
       this.commentSuggestions = [...new Set(this.comments.map(c => c.text))]
         .filter(t => t.toLowerCase().includes(search));
+      this.commentHighlightIndex = -1;
     },
     selectCommentSuggestion(item) {
       this.newCommentText = item;
