@@ -160,9 +160,19 @@
           v-for="c in comments"
           :key="c.id"
           :comment="c"
-          @delete-comment="deleteComment"
+          @delete-comment="confirmDeleteComment"
+        />
+        <!-- Confirm Modal -->
+        <ConfirmModal
+          :isOpen="showDeleteModal"
+          title="Delete Comment"
+          message="Are you sure you want to delete this comment?"
+          @confirm="deleteConfirmed"
+          @cancel="showDeleteModal = false"
         />
       </div>
+
+      
 
       <p v-else class="text-gray-500 text-center">No comments yet.</p>
     </div>
@@ -250,6 +260,7 @@
 <script>
 import BaseButton from "@/BaseComponents/BaseButton.vue";
 import BaseSelect from "@/BaseComponents/BaseSelect.vue";
+import ConfirmModal from "@/BaseComponents/ConfirmModal.vue";
 import BaseCommentComponent from "@/BaseComponents/BaseCommentComponent.vue";
 import { getUsers, getUser } from "@/live-sessions/api/users";
 import { getSessions, getSession } from "@/live-sessions/api/sessions";
@@ -269,7 +280,7 @@ import { getCommentsForUserInSession, addCommentForUserInSession, deleteCommentF
 import { DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
-  components: { BaseCommentComponent, BaseButton, BaseSelect, DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
+  components: { BaseCommentComponent, BaseButton, BaseSelect, ConfirmModal, DocumentTextIcon, PlusIcon, MinusIcon, ArrowsRightLeftIcon },
   data() {
     return {
       sessions: [],
@@ -289,6 +300,8 @@ export default {
       showRoleModal: false,
       selectedRoleInModal: "",
       comments: [],
+      showDeleteModal: false,
+      commentToDelete: null,
       newCommentText: "",
       commentSuggestions: [],
       isCommentActive: false,
@@ -523,10 +536,22 @@ export default {
       this.newCommentText = item;
       this.commentSuggestions = [];
     },
-    async deleteComment(commentId) {
-      await deleteCommentForUserInSession(this.selectedUserId, this.selectedSessionId, commentId);
-      await this.fetchComments();
-    }
+    confirmDeleteComment(commentId) {
+      this.commentToDelete = commentId;
+      this.showDeleteModal = true;
+    },
+    async deleteConfirmed() {
+      if (!this.commentToDelete) return;
+
+      try {
+        await deleteCommentForUserInSession(this.selectedUserId, this.selectedSessionId, this.commentToDelete);
+        this.showDeleteModal = false;
+        this.commentToDelete = null;
+        await this.fetchComments(); // refresh comments list
+      } catch (err) {
+        console.error("Failed to delete comment:", err);
+      }
+    },
   },
   async mounted() {
     await Promise.all([this.fetchSessions(), this.fetchUsers(), this.fetchRoles()]);
