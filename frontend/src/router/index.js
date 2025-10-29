@@ -24,21 +24,21 @@ import SessionList from "@/live-sessions/components/SessionComponents/SessionLis
 import SessionForm from "@/live-sessions/components/SessionComponents/SessionForm.vue";
 import SessionEdit from "@/live-sessions/components/SessionComponents/SessionEdit.vue";
 
-// Async Sessions (asynchrone Analysen)
+// Async Sessions (bestehend)
 import AsyncSessionList     from "../async-sessions/pages/AsyncSessionList.vue";
 import AsyncSessionCreate   from "../async-sessions/pages/AsyncSessionCreate.vue";
 import AsyncSessionDetail   from "../async-sessions/pages/AsyncSessionDetail.vue";
 import AsyncSessionFeedback from "../async-sessions/pages/AsyncSessionFeedback.vue";
 
+// Async Review MVP (NEU – eine Seite)
+import AsyncReviewMVP from "../async-sessions/pages/AsyncReviewMVP.vue";
 
 // Roles
 import RoleList from "@/live-sessions/components/RoleComponents/RoleList.vue";
 import RoleForm from "@/live-sessions/components/RoleComponents/RoleForm.vue";
 
-//Files
+// Files
 import FileExports from "@/live-sessions/components/FileComponents/FileExports.vue";
-
-
 
 const routes = [
   { path: "/", redirect: "/users" },
@@ -46,120 +46,43 @@ const routes = [
   { path: "/register", component: RegisterForm },
 
   // Users
-  {
-    path: "/users",
-    component: UserList,
-  },
-  {
-    path: "/users/create",
-    component: UserForm,
-  },
-  {
-    path: "/users/edit/:id",
-    component: UserForm,
-    props: true,
-  },
-  {
-    path: "/users/:id",
-    component: UserDetail,
-  },
-  {
-    path: "/users/:id/evaluation",
-    component: UserEvaluation,
-    props: true,
-  },
+  { path: "/users", component: UserList },
+  { path: "/users/create", component: UserForm },
+  { path: "/users/edit/:id", component: UserForm, props: true },
+  { path: "/users/:id", component: UserDetail },
+  { path: "/users/:id/evaluation", component: UserEvaluation, props: true },
 
   // Teams
-  {
-    path: "/teams",
-    component: TeamList,
-  },
-  {
-    path: "/teams/create",
-    component: TeamForm,
-  },
-  { 
-    path: "/teams/edit/:id",
-    component: TeamForm,
-    props: true,
-  },
+  { path: "/teams", component: TeamList },
+  { path: "/teams/create", component: TeamForm },
+  { path: "/teams/edit/:id", component: TeamForm, props: true },
+
   // Criterias
-  {
-    path: "/criterias",
-    component: CriteriaList,
-  },
-  {
-    path: "/criterias/create",
-    component: CriteriaForm,
-  },
-  {
-    path: "/criterias/edit/:id",
-    component: CriteriaForm,
-    props: true,
-  },
-  {
-    path: "/criterias/:id/users",
-    component: CriterionUserView,
-    props: true,
-  },
+  { path: "/criterias", component: CriteriaList },
+  { path: "/criterias/create", component: CriteriaForm },
+  { path: "/criterias/edit/:id", component: CriteriaForm, props: true },
+  { path: "/criterias/:id/users", component: CriterionUserView, props: true },
 
   // Sessions
-  {
-    path: "/sessions",
-    component: SessionList,
-  },
-  {
-    path: "/sessions/create",
-    component: SessionForm,
-  },
-  {
-    path: "/sessions/edit/:id",
-    component: SessionEdit,
-    props: true,
-  },
-  // Async Sessions
-  { path: "/async", redirect: "/async/sessions", meta: { requiresAuth: true } },
-  {
-    path: "/async/sessions",
-    component: AsyncSessionList,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: "/async/create",
-    component: AsyncSessionCreate,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: "/async/sessions/:id",
-    component: AsyncSessionDetail,
-    props: true,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: "/async/sessions/:id/feedback",
-    component: AsyncSessionFeedback,
-    props: true,
-    meta: { requiresAuth: true },
-  },
+  { path: "/sessions", component: SessionList },
+  { path: "/sessions/create", component: SessionForm },
+  { path: "/sessions/edit/:id", component: SessionEdit, props: true },
+
+  // Async – öffentlich zugänglich (ohne Login)
+  { path: "/async", redirect: "/async/review" },
+  { path: "/async/review", component: AsyncReviewMVP },
+  { path: "/async/sessions", component: AsyncSessionList },
+  { path: "/async/create", component: AsyncSessionCreate },
+  { path: "/async/sessions/:id", component: AsyncSessionDetail, props: true },
+  { path: "/async/sessions/:id/feedback", component: AsyncSessionFeedback, props: true },
+
   // Roles
-  {
-    path: "/roles",
-    component: RoleList,
-  },
-  { 
-    path: "/roles/create",
-    component: RoleForm,
-  },
-  {
-    path: "/roles/edit/:id",
-    component: RoleForm,
-    props: true,
-  },
+  { path: "/roles", component: RoleList },
+  { path: "/roles/create", component: RoleForm },
+  { path: "/roles/edit/:id", component: RoleForm, props: true },
+
   // Files
-  {
-    path: "/files",
-    component: FileExports,
-  },
+  { path: "/files", component: FileExports },
 ];
 
 const router = createRouter({
@@ -167,7 +90,7 @@ const router = createRouter({
   routes,
 });
 
-// simple navigation guard
+// Navigation Guard – schützt nur Routen mit requiresAuth
 router.beforeEach((to, from, next) => {
   const loggedIn = !!localStorage.getItem("token");
   if (to.meta.requiresAuth && !loggedIn) {
